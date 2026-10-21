@@ -11,10 +11,17 @@ import {
   LogOut,
   Leaf,
   ChevronDown,
-} from "lucide-react";
+  UserRound,
+} from "lucide-react"; 
 
 type OrganizerSidebarProps = {
-  activePage: "Dashboard" | "Create Event" | "Manage Events" | "Event Volunteers" | "Analytics";
+  activePage:
+    | "Dashboard"
+    | "Create Event"
+    | "Manage Events"
+    | "Event Volunteers"
+    | "Analytics"
+    | "Profile";
   sidebarOpen: boolean;
   onClose: () => void;
   onLogout?: () => void;
@@ -24,11 +31,36 @@ type OrganizerSidebarProps = {
 };
 
 const navItems = [
-  { label: "Dashboard", href: "/organizer/dashboard", icon: LayoutDashboard },
-  { label: "Create Event", href: "/organizer/events/create", icon: CalendarPlus },
-  { label: "Manage Events", href: "/organizer/events", icon: CalendarDays },
-  { label: "Event Volunteers", href: "/organizer/volunteers", icon: Users },
-  { label: "Analytics", href: "/organizer/analytics", icon: ChartNoAxesColumn },
+  {
+    label: "Dashboard",
+    href: "/organizer/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    label: "Create Event",
+    href: "/organizer/events/create",
+    icon: CalendarPlus,
+  },
+  {
+    label: "Manage Events",
+    href: "/organizer/events",
+    icon: CalendarDays,
+  },
+  {
+    label: "Event Volunteers",
+    href: "/organizer/volunteers",
+    icon: Users,
+  },
+  {
+    label: "Analytics",
+    href: "/organizer/analytics",
+    icon: ChartNoAxesColumn,
+  },
+  {
+    label: "Profile",
+    href: "/organizer/profile",
+    icon: UserRound,
+  },
 ] as const;
 
 export default function OrganizerSidebar({
@@ -69,7 +101,37 @@ export default function OrganizerSidebar({
         .uv-sidebar-card h3 { margin:0 0 6px; color:white; font-size:12px; }
         .uv-sidebar-card p { margin:0; color:#a7b8cb; font-size:10px; line-height:1.6; }
         .uv-side-bottom { padding:16px 14px 21px; border-top:1px solid #ffffff12; }
-        .uv-user { display:flex; align-items:center; gap:10px; padding:8px 7px 16px; }
+        .uv-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 7px 16px;
+}
+
+.uv-user-profile-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.uv-user-profile-link:hover .uv-user-name {
+  color: #52dda8;
+}
+
+.uv-user-profile-link:focus-visible {
+  outline: 2px solid #52dda8;
+  outline-offset: 4px;
+}
         .uv-avatar { display:grid; flex:none; width:37px; height:37px; place-items:center; border-radius:50%; background:#d5e9df; color:#176748; font-size:12px; font-weight:800; }
         .uv-user-name { color:white; font-size:12px; font-weight:700; }
         .uv-user-role { margin-top:3px; color:#9caec5; font-size:11px; }
@@ -116,9 +178,27 @@ export default function OrganizerSidebar({
         <div className="uv-sidebar-spacer" />
         <div className="uv-sidebar-card"><div className="uv-sidebar-card-icon"><Leaf size={21} /></div><h3>Make an impact</h3><p>Every community event starts with an idea. Bring yours to life with UnityVol.</p></div>
         <div className="uv-side-bottom">
-          <div className="uv-user"><div className="uv-avatar">{avatarText}</div><div><div className="uv-user-name">{userName}</div><div className="uv-user-role">{userRole}</div></div><ChevronDown size={14} style={{ marginLeft:"auto", color:"#9badc3" }} /></div>
-          <button className="uv-logout" onClick={onLogout}><LogOut size={16} /><span>Logout</span></button>
-        </div>
+  <div className="uv-user">
+    <Link
+      href="/organizer/profile"
+      className="uv-user-profile-link"
+      onClick={onClose}
+      aria-label="Open profile page"
+    >
+      <div className="uv-avatar">{avatarText}</div>
+
+      <div>
+        <div className="uv-user-name">{userName}</div>
+        <div className="uv-user-role">{userRole}</div>
+      </div>
+    </Link>
+  </div>
+
+  <button className="uv-logout" onClick={onLogout}>
+    <LogOut size={16} />
+    <span>Logout</span>
+  </button>
+</div>
       </aside>
     </>
   );

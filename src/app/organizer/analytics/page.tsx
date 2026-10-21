@@ -1,28 +1,17 @@
-
 "use client";
 
 import OrganizerSidebar from "@/components/OrganizerSidebar";
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import {
-  LayoutDashboard,
-  CalendarPlus,
   CalendarDays,
   Users,
-  ChartNoAxesColumn,
   Menu,
-  X,
   TrendingUp,
-  TrendingDown,
   UserCheck,
   Clock,
-  CheckCircle2,
   Search,
   ArrowUpRight,
   ArrowDownRight,
-  Activity,
-  Target,
-  Heart,
   Download,
 } from "lucide-react";
 
@@ -92,34 +81,6 @@ const eventPerformance = [
   },
 ];
 
-const navItems = [
-  {
-    label: "Dashboard",
-    href: "/organizer/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Create Event",
-    href: "/organizer/events/create",
-    icon: CalendarPlus,
-  },
-  {
-    label: "Manage Events",
-    href: "/organizer/events",
-    icon: CalendarDays,
-  },
-  {
-    label: "Event Volunteers",
-    href: "/organizer/volunteers",
-    icon: Users,
-  },
-  {
-    label: "Analytics",
-    href: "/organizer/analytics",
-    icon: ChartNoAxesColumn,
-  },
-];
-
 export default function AnalyticsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -165,12 +126,12 @@ export default function AnalyticsPage() {
     ]);
 
     const csv = [header, ...rows]
-  .map((row) =>
-    row
-      .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-      .join(",")
-  )
-  .join("\n");
+      .map((row) =>
+        row
+          .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
 
     const blob = new Blob(["\uFEFF" + csv], {
       type: "text/csv;charset=utf-8;",
@@ -181,8 +142,9 @@ export default function AnalyticsPage() {
 
     link.href = url;
     link.download = "unityvol-analytics.csv";
+    document.body.appendChild(link);
     link.click();
-
+    link.remove();
     URL.revokeObjectURL(url);
   };
 
@@ -214,123 +176,6 @@ export default function AnalyticsPage() {
           min-height: 100vh;
         }
 
-        .sidebar {
-          position: fixed;
-          inset: 0 auto 0 0;
-          z-index: 50;
-          display: flex;
-          flex-direction: column;
-          width: 246px;
-          padding: 22px 13px;
-          background: #12223a;
-          color: #d9e4f3;
-          transition: transform 0.25s ease;
-        }
-
-        .brand {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 0 10px 28px;
-          color: white;
-          text-decoration: none;
-        }
-
-        .logo {
-          display: grid;
-          place-items: center;
-          width: 38px;
-          height: 38px;
-          border-radius: 12px;
-          background: #119b6b;
-        }
-
-        .brand-name {
-          font-size: 21px;
-          font-weight: 850;
-          letter-spacing: -0.7px;
-        }
-
-        .brand-caption {
-          margin-top: 3px;
-          color: #a5b6c9;
-          font-size: 8px;
-          letter-spacing: 1px;
-        }
-
-        .nav-label {
-          margin: 0 11px 11px;
-          color: #8093aa;
-          font-size: 10px;
-          font-weight: 800;
-          letter-spacing: 1.4px;
-          text-transform: uppercase;
-        }
-
-        .nav {
-          display: grid;
-          gap: 7px;
-        }
-
-        .nav a {
-          display: flex;
-          align-items: center;
-          gap: 11px;
-          padding: 12px 12px;
-          border-radius: 9px;
-          color: #b9c8d9;
-          font-size: 12px;
-          font-weight: 600;
-          text-decoration: none;
-          transition: background 0.2s, color 0.2s;
-        }
-
-        .nav a:hover {
-          background: #1c344f;
-          color: white;
-        }
-
-        .nav a.active {
-          background: #119b6b;
-          color: white;
-          box-shadow: 0 6px 15px #07956830;
-        }
-
-        .sidebar-bottom {
-          margin-top: auto;
-          padding: 14px 10px 0;
-        }
-
-        .impact-card {
-          padding: 16px 13px;
-          border: 1px solid #30455e;
-          border-radius: 12px;
-          background: #192e47;
-        }
-
-        .impact-card h4 {
-          margin: 10px 0 5px;
-          color: white;
-          font-size: 12px;
-        }
-
-        .impact-card p {
-          margin: 0;
-          color: #a9bbcf;
-          font-size: 10px;
-          line-height: 1.7;
-        }
-
-        .impact-icon {
-          display: grid;
-          place-items: center;
-          width: 32px;
-          height: 32px;
-          border-radius: 9px;
-          background: #0b7958;
-          color: #c4ffe7;
-        }
-
         .main-content {
           min-height: 100vh;
           margin-left: 246px;
@@ -339,16 +184,17 @@ export default function AnalyticsPage() {
 
         .topbar {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: space-between;
           gap: 16px;
-          margin-bottom: 29px;
+          margin-bottom: 22px;
         }
 
         .breadcrumb {
           margin-bottom: 7px;
           color: #8190a5;
           font-size: 11px;
+          line-height: 1.4;
         }
 
         .breadcrumb span {
@@ -356,17 +202,19 @@ export default function AnalyticsPage() {
           font-weight: 700;
         }
 
+        /* Heading design matched with the other organizer pages */
         .page-title {
           margin: 0;
           color: #17243b;
-          font-size: clamp(23px, 2.2vw, 30px);
-          font-weight: 850;
-          letter-spacing: -1px;
+          font-size: 26px;
+          font-weight: 800;
+          letter-spacing: -0.7px;
+          line-height: 1.25;
         }
 
         .page-subtitle {
           margin: 7px 0 0;
-          color: #8090a5;
+          color: #7c8ba0;
           font-size: 12px;
           line-height: 1.6;
         }
@@ -845,10 +693,6 @@ export default function AnalyticsPage() {
           font-size: 10px;
         }
 
-        .mobile-overlay {
-          display: none;
-        }
-
         @media (max-width: 1200px) {
           .main-content {
             padding: 24px;
@@ -864,22 +708,6 @@ export default function AnalyticsPage() {
         }
 
         @media (max-width: 900px) {
-          .sidebar {
-            transform: translateX(-100%);
-          }
-
-          .sidebar.open {
-            transform: translateX(0);
-          }
-
-          .mobile-overlay.show {
-            position: fixed;
-            inset: 0;
-            z-index: 40;
-            display: block;
-            background: #0b1728a3;
-          }
-
           .main-content {
             margin-left: 0;
             padding: 22px;
@@ -899,6 +727,11 @@ export default function AnalyticsPage() {
         }
 
         @media (max-width: 560px) {
+          .page-title {
+            font-size: 23px;
+            letter-spacing: -0.5px;
+          }
+
           .main-content {
             padding: 16px;
           }
@@ -969,10 +802,10 @@ export default function AnalyticsPage() {
       `}</style>
 
       <OrganizerSidebar
-  activePage="Analytics"
-  sidebarOpen={sidebarOpen}
-  onClose={() => setSidebarOpen(false)}
-/>
+        activePage="Analytics"
+        sidebarOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       <div
         className={`mobile-overlay ${sidebarOpen ? "show" : ""}`}
@@ -1101,25 +934,27 @@ export default function AnalyticsPage() {
             </div>
 
             <div className="chart-area">
-              {monthlyData.slice(
-                period === "4 months"
-                  ? 4
-                  : period === "6 months"
-                    ? 2
-                    : 0
-              ).map((item) => (
-                <div className="chart-column" key={item.month}>
-                  <span className="bar-value">{item.volunteers}</span>
-                  <div
-                    className="bar"
-                    style={{
-                      height: `${(item.volunteers / maxVolunteers) * 75}%`,
-                    }}
-                    title={`${item.volunteers} volunteers`}
-                  />
-                  <span className="bar-label">{item.month}</span>
-                </div>
-              ))}
+              {monthlyData
+                .slice(
+                  period === "4 months"
+                    ? 4
+                    : period === "6 months"
+                      ? 2
+                      : 0
+                )
+                .map((item) => (
+                  <div className="chart-column" key={item.month}>
+                    <span className="bar-value">{item.volunteers}</span>
+                    <div
+                      className="bar"
+                      style={{
+                        height: `${(item.volunteers / maxVolunteers) * 75}%`,
+                      }}
+                      title={`${item.volunteers} volunteers`}
+                    />
+                    <span className="bar-label">{item.month}</span>
+                  </div>
+                ))}
             </div>
 
             <div className="chart-legend">

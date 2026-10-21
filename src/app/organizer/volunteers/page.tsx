@@ -447,24 +447,40 @@ export default function EventVolunteersPage() {
 
         .status.pending { background: #fff3dd; color: #ad7413; }
 
-        .actions { display: flex; align-items: center; gap: 7px; }
+        .actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: nowrap;
+}
 
-        .action {
+.action {
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
+
+  height: 38px;
   min-height: 38px;
+  min-width: 112px;
   padding: 0 14px;
+
   border: 1px solid #e1e8f0;
   border-radius: 8px;
-  background: white;
+  background: #ffffff;
   color: #52667f;
+
+  font-family: inherit;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1;
   white-space: nowrap;
+
   cursor: pointer;
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .action svg {
@@ -473,8 +489,21 @@ export default function EventVolunteersPage() {
   flex-shrink: 0;
 }
 
-        .action:hover { border-color: #0d9669; color: #087b56; }
-        .action.remove:hover { border-color: #fca5a5; color: #dc2626; }
+.action:hover {
+  border-color: #0d9669;
+  color: #087b56;
+}
+
+.action.remove {
+  min-width: 38px;
+  width: 38px;
+  padding: 0;
+}
+
+.action.remove:hover {
+  border-color: #fca5a5;
+  color: #dc2626;
+}
 
         .empty { padding: 35px; text-align: center; color: #8795a8; }
 

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import OrganizerSidebar from "@/components/OrganizerSidebar";
 import {
@@ -159,6 +159,25 @@ export default function OrganizerDashboard() {
   const [showAllRegistrations, setShowAllRegistrations] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [notice, setNotice] = useState("");
+
+  const profileRef = useRef<HTMLDivElement>(null);
+
+useEffect(() => {
+  function handleOutsideClick(event: MouseEvent) {
+    if (
+      profileRef.current &&
+      !profileRef.current.contains(event.target as Node)
+    ) {
+      setShowProfile(false);
+    }
+  }
+
+  document.addEventListener("mousedown", handleOutsideClick);
+
+  return () => {
+    document.removeEventListener("mousedown", handleOutsideClick);
+  };
+}, []);
 
 
   const [aiMessage, setAiMessage] = useState("");
@@ -1669,7 +1688,7 @@ export default function OrganizerDashboard() {
             </label>
           </div>
 
-          <div className="uv-top-right">
+          <div className="uv-top-right" ref={profileRef}>
             <button
               className="uv-bell"
               aria-label="Notifications"
@@ -1697,14 +1716,21 @@ export default function OrganizerDashboard() {
 
             {showProfile && (
               <div className="uv-profile-menu">
-                <button
-                  onClick={() => {
-                    setShowProfile(false);
-                    setNotice("Connect this option to your profile page.");
-                  }}
-                >
-                  My Profile
-                </button>
+                <Link
+  href="/organizer/profile"
+  onClick={() => setShowProfile(false)}
+  style={{
+    display: "block",
+    width: "100%",
+    padding: "10px",
+    borderRadius: "6px",
+    color: "#40516a",
+    fontSize: "12px",
+    textDecoration: "none",
+  }}
+>
+  My Profile
+</Link>
                 <button
                   onClick={() => {
                     setShowProfile(false);
