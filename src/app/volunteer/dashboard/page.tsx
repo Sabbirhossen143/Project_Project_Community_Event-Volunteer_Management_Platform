@@ -2,12 +2,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import VolunteerSidebar from "@/components/VolunteerSidebar";
 import {
-  LayoutDashboard,
   Compass,
   CalendarCheck,
-  UserRound,
   CalendarDays,
   MapPin,
   Clock3,
@@ -19,7 +18,20 @@ import {
   Search,
 } from "lucide-react";
 
-const events = [
+type VolunteerEvent = {
+  id: number;
+  title: string;
+  category: string;
+  date: string;
+  time: string;
+  location: string;
+  registered: boolean;
+  status: string;
+  color: string;
+  textColor: string;
+};
+
+const events: VolunteerEvent[] = [
   {
     id: 1,
     title: "Tree Plantation Drive",
@@ -58,43 +70,31 @@ const events = [
   },
 ];
 
-const navigation = [
-  {
-    label: "Dashboard",
-    href: "/volunteer/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Browse Events",
-    href: "/volunteer/events",
-    icon: Compass,
-  },
-  {
-    label: "My Events",
-    href: "/volunteer/my-events",
-    icon: CalendarCheck,
-  },
-  {
-    label: "My Profile",
-    href: "/volunteer/profile",
-    icon: UserRound,
-  },
-];
 
 export default function VolunteerDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [currentTime, setCurrentTime] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCurrentTime(Date.now());
+  }, []);
 
   const registeredEvents = events.filter((event) => event.registered);
-  const upcomingEvents = events.filter(
-    (event) => new Date(event.date).getTime() >= Date.now()
-  );
+
+  const upcomingEvents = events.filter((event) => {
+    if (currentTime === null) return true;
+
+    return new Date(event.date).getTime() >= currentTime;
+  });
 
   const filteredEvents = upcomingEvents.filter((event) =>
     `${event.title} ${event.category} ${event.location}`
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+
+
 
   return (
     <div className="volunteer-app">
@@ -115,124 +115,6 @@ export default function VolunteerDashboard() {
           font: inherit;
         }
 
-        .v-sidebar {
-          position: fixed;
-          inset: 0 auto 0 0;
-          z-index: 30;
-          display: flex;
-          flex-direction: column;
-          width: 246px;
-          padding: 22px 13px;
-          background: #12223a;
-          color: #d9e4f3;
-        }
-
-        .v-brand {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 0 10px 32px;
-          color: white;
-          text-decoration: none;
-        }
-
-        .v-logo {
-          display: grid;
-          place-items: center;
-          width: 38px;
-          height: 38px;
-          border-radius: 12px;
-          background: #119b6b;
-        }
-
-        .v-brand-name {
-          font-size: 20px;
-          font-weight: 850;
-        }
-
-        .v-brand-caption {
-          margin-top: 3px;
-          color: #a5b6c9;
-          font-size: 9px;
-          letter-spacing: 1px;
-        }
-
-        .v-nav-title {
-          padding: 0 13px;
-          margin: 0 0 10px;
-          color: #8195ae;
-          font-size: 10px;
-          font-weight: 750;
-          letter-spacing: 1px;
-        }
-
-        .v-nav {
-          display: grid;
-          gap: 7px;
-        }
-
-        .v-nav a {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-height: 44px;
-          padding: 0 13px;
-          border-radius: 9px;
-          color: #c1cddd;
-          font-size: 12px;
-          font-weight: 650;
-          text-decoration: none;
-          transition: background 0.2s;
-        }
-
-        .v-nav a:hover {
-          background: #ffffff0c;
-          color: white;
-        }
-
-        .v-nav a.active {
-          background: #0d9669;
-          color: white;
-        }
-
-        .v-sidebar-bottom {
-          margin-top: auto;
-          padding: 15px 8px 0;
-          border-top: 1px solid #ffffff18;
-        }
-
-        .v-user {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 8px 0;
-        }
-
-        .v-avatar {
-          display: grid;
-          place-items: center;
-          flex: none;
-          width: 38px;
-          height: 38px;
-          border-radius: 50%;
-          background: #d5e9df;
-          color: #176748;
-          font-size: 12px;
-          font-weight: 800;
-        }
-
-        .v-user-name {
-          color: white;
-          font-size: 12px;
-          font-weight: 750;
-        }
-
-        .v-user-role {
-          margin-top: 3px;
-          color: #9caec5;
-          font-size: 10px;
-        }
-
         .v-main {
           min-height: 100vh;
           margin-left: 246px;
@@ -251,6 +133,12 @@ export default function VolunteerDashboard() {
           border-bottom: 1px solid #e7edf4;
           background: #ffffffed;
           backdrop-filter: blur(10px);
+        }
+
+        .v-top-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
         }
 
         .v-top-title {
@@ -481,32 +369,34 @@ export default function VolunteerDashboard() {
         }
 
         .v-event-title {
-          margin: 0;
+          margin: 0 0 5px;
           color: #293b52;
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 800;
         }
 
         .v-category {
-          display: inline-block;
-          margin-top: 6px;
           font-size: 10px;
-          font-weight: 700;
+          font-weight: 750;
         }
 
         .v-event-meta {
           display: flex;
           flex-wrap: wrap;
-          gap: 7px 14px;
-          margin-top: 8px;
-          color: #8795a8;
-          font-size: 10px;
+          gap: 10px;
+          margin-top: 9px;
         }
 
         .v-meta-item {
           display: inline-flex;
           align-items: center;
-          gap: 5px;
+          gap: 4px;
+          color: #8795a8;
+          font-size: 10px;
+        }
+
+        .v-event-action {
+          flex: none;
         }
 
         .v-status {
@@ -515,65 +405,71 @@ export default function VolunteerDashboard() {
           gap: 5px;
           padding: 6px 9px;
           border-radius: 20px;
-          background: #e5f8ef;
-          color: #16855f;
+          background: #dcfce7;
+          color: #15803d;
           font-size: 10px;
           font-weight: 750;
           white-space: nowrap;
         }
 
         .v-status.pending {
-          background: #fff3dd;
-          color: #ad7413;
+          background: #fef3c7;
+          color: #a16207;
         }
 
         .v-empty {
-          padding: 32px 20px;
-          text-align: center;
+          padding: 30px 20px;
           color: #8795a8;
           font-size: 12px;
+          text-align: center;
         }
 
         .v-bottom-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
           gap: 20px;
+          align-items: stretch;
+        }
+
+        .v-bottom-grid .v-panel {
+          margin-bottom: 0;
         }
 
         .v-tip {
-          padding: 20px;
-          background: linear-gradient(135deg, #e9fbf2, #f7fffb);
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          justify-content: center;
+          padding: 26px;
+          background: linear-gradient(135deg, #e8fff3, #ffffff);
         }
 
         .v-tip-icon {
           display: grid;
           place-items: center;
-          width: 43px;
-          height: 43px;
-          border-radius: 12px;
-          background: #d0f5e2;
+          width: 45px;
+          height: 45px;
+          margin-bottom: 15px;
+          border-radius: 13px;
+          background: #d1fae5;
           color: #0d9669;
         }
 
         .v-tip h3 {
-          margin: 14px 0 7px;
-          font-size: 14px;
+          margin: 0 0 9px;
+          font-size: 17px;
         }
 
         .v-tip p {
-          margin: 0;
-          color: #687d77;
-          font-size: 11px;
+          margin: 0 0 18px;
+          color: #718096;
+          font-size: 12px;
           line-height: 1.8;
         }
 
-        .v-tip .v-primary {
-          margin-top: 16px;
-        }
-
-        @media (max-width: 1000px) {
+        @media (max-width: 1100px) {
           .v-content {
-            padding: 22px 18px;
+            padding: 22px;
           }
 
           .v-stats {
@@ -589,36 +485,37 @@ export default function VolunteerDashboard() {
           }
         }
 
-        @media (max-width: 760px) {
-          .v-sidebar {
-            transform: translateX(-100%);
-            transition: transform 0.2s ease;
-          }
-
-          .v-sidebar.open {
-            transform: translateX(0);
-            box-shadow: 20px 0 60px #0d1b2d35;
-          }
-
+        @media (max-width: 900px) {
           .v-main {
             margin-left: 0;
           }
 
           .v-mobile-menu {
             display: grid;
-            flex: none;
           }
 
           .v-topbar {
-            padding: 12px 15px;
-          }
-
-          .v-top-title {
-            display: none;
+            padding: 12px 18px;
           }
 
           .v-content {
-            padding: 22px 15px;
+            padding: 22px 18px;
+          }
+        }
+
+        @media (max-width: 650px) {
+          .v-topbar {
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+
+          .v-top-left {
+            width: 100%;
+          }
+
+          .v-search {
+            width: 100%;
+            max-width: none;
           }
 
           .v-welcome {
@@ -627,18 +524,15 @@ export default function VolunteerDashboard() {
           }
 
           .v-welcome h1 {
-            font-size: 25px;
+            font-size: 23px;
           }
 
           .v-stats {
             grid-template-columns: 1fr;
           }
-        }
 
-        @media (max-width: 480px) {
-          .v-search {
-            width: 100%;
-            max-width: 210px;
+          .v-stat {
+            padding: 17px;
           }
 
           .v-event {
@@ -650,70 +544,37 @@ export default function VolunteerDashboard() {
             padding-left: 57px;
           }
 
+          .v-event-meta {
+            gap: 8px;
+          }
+
           .v-panel-head {
             padding: 16px;
           }
         }
       `}</style>
 
-      <aside className={`v-sidebar ${sidebarOpen ? "open" : ""}`}>
-        <Link href="/volunteer/dashboard" className="v-brand">
-          <div className="v-logo">
-            <HandHeart size={23} color="white" />
-          </div>
-          <div>
-            <div className="v-brand-name">UnityVol</div>
-            <div className="v-brand-caption">COMMUNITY PLATFORM</div>
-          </div>
-        </Link>
-
-        <p className="v-nav-title">VOLUNTEER MENU</p>
-
-        <nav className="v-nav">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={
-                  item.href === "/volunteer/dashboard" ? "active" : ""
-                }
-                onClick={() => setSidebarOpen(false)}
-              >
-                <Icon size={18} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="v-sidebar-bottom">
-          <Link
-            href="/volunteer/profile"
-            className="v-user"
-            style={{ textDecoration: "none" }}
-            onClick={() => setSidebarOpen(false)}
-          >
-            <div className="v-avatar">SA</div>
-            <div>
-              <div className="v-user-name">Sarah Ahmed</div>
-              <div className="v-user-role">Volunteer</div>
-            </div>
-          </Link>
-        </div>
-      </aside>
+      <VolunteerSidebar
+        activePage="Dashboard"
+        sidebarOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        userName="Sarah Ahmed"
+        userRole="Volunteer"
+        avatarText="SA"
+      />
 
       <main className="v-main">
         <header className="v-topbar">
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="v-top-left">
             <button
+              type="button"
               className="v-mobile-menu"
               aria-label="Toggle navigation"
               onClick={() => setSidebarOpen((open) => !open)}
             >
               {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
+
             <span className="v-top-title">
               Volunteer Workspace / Dashboard
             </span>
@@ -756,9 +617,11 @@ export default function VolunteerDashboard() {
                   <CalendarCheck size={19} />
                 </div>
               </div>
+
               <div className="v-stat-number">
                 {registeredEvents.length}
               </div>
+
               <div className="v-stat-note">
                 Events you have registered for
               </div>
@@ -774,7 +637,11 @@ export default function VolunteerDashboard() {
                   <CalendarDays size={19} />
                 </div>
               </div>
-              <div className="v-stat-number">{upcomingEvents.length}</div>
+
+              <div className="v-stat-number">
+                {upcomingEvents.length}
+              </div>
+
               <div className="v-stat-note">
                 Opportunities coming up
               </div>
@@ -790,11 +657,15 @@ export default function VolunteerDashboard() {
                   <CheckCircle2 size={19} />
                 </div>
               </div>
+
               <div className="v-stat-number">
-                {registeredEvents.filter(
-                  (event) => event.status === "Confirmed"
-                ).length}
+                {
+                  registeredEvents.filter(
+                    (event) => event.status === "Confirmed"
+                  ).length
+                }
               </div>
+
               <div className="v-stat-note">
                 Registrations confirmed by organizers
               </div>
@@ -804,11 +675,14 @@ export default function VolunteerDashboard() {
           <section className="v-panel">
             <div className="v-panel-head">
               <div>
-                <h2 className="v-panel-title">Upcoming Opportunities</h2>
+                <h2 className="v-panel-title">
+                  Upcoming Opportunities
+                </h2>
                 <p className="v-panel-subtitle">
                   Find an event that matches your interests.
                 </p>
               </div>
+
               <Link href="/volunteer/events" className="v-text-link">
                 Browse all <ArrowRight size={14} />
               </Link>
@@ -830,22 +704,28 @@ export default function VolunteerDashboard() {
                       </div>
 
                       <div style={{ minWidth: 0 }}>
-                        <h3 className="v-event-title">{event.title}</h3>
+                        <h3 className="v-event-title">
+                          {event.title}
+                        </h3>
+
                         <span
                           className="v-category"
                           style={{ color: event.textColor }}
                         >
                           {event.category}
                         </span>
+
                         <div className="v-event-meta">
                           <span className="v-meta-item">
                             <CalendarDays size={13} />
                             {event.date}
                           </span>
+
                           <span className="v-meta-item">
                             <Clock3 size={13} />
                             {event.time}
                           </span>
+
                           <span className="v-meta-item">
                             <MapPin size={13} />
                             {event.location}
@@ -866,6 +746,7 @@ export default function VolunteerDashboard() {
                           ) : (
                             <Clock3 size={12} />
                           )}
+
                           {event.status}
                         </span>
                       ) : (
@@ -896,6 +777,7 @@ export default function VolunteerDashboard() {
                     Keep track of your registrations.
                   </p>
                 </div>
+
                 <Link href="/volunteer/my-events" className="v-text-link">
                   View all <ArrowRight size={14} />
                 </Link>
@@ -925,6 +807,7 @@ export default function VolunteerDashboard() {
                         >
                           {event.title}
                         </div>
+
                         <div
                           style={{
                             marginTop: 5,
@@ -957,12 +840,15 @@ export default function VolunteerDashboard() {
               <div className="v-tip-icon">
                 <HandHeart size={22} />
               </div>
+
               <h3>Small actions, big impact</h3>
+
               <p>
                 Your time and skills can help create meaningful change.
                 Explore community opportunities and find a cause you care
                 about.
               </p>
+
               <Link href="/volunteer/events" className="v-primary">
                 Find opportunities <ArrowRight size={15} />
               </Link>
