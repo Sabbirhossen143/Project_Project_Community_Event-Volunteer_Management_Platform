@@ -9,10 +9,19 @@ import {
   UserRound,
   LogOut,
   Leaf,
+  CalendarCheck,
 } from "lucide-react";
 
+
 type VolunteerSidebarProps = {
-  activePage: "Dashboard" | "Browse Events" | "My Events" | "Profile";
+  activePage:
+    | "Dashboard"
+    | "Browse Events"
+    | "My Events"
+    | "Activity History"
+    | "Profile"
+    | "My Profile"
+    | "Edit Profile";
   sidebarOpen: boolean;
   onClose: () => void;
   onLogout?: () => void;
@@ -38,7 +47,12 @@ const navItems = [
     icon: ClipboardList,
   },
   {
-    label: "Profile",
+    label: "Activity History",
+    href: "/volunteer/activity-history",
+    icon: CalendarCheck,
+  },
+  {
+    label: "My Profile",
     href: "/volunteer/profile",
     icon: UserRound,
   },
@@ -306,43 +320,75 @@ export default function VolunteerSidebar({
           onClick={onClose}
         >
           <svg
-            className="uv-logo"
-            viewBox="0 0 48 48"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-label="UnityVol logo"
-          >
-            <rect
-              x="1"
-              y="1"
-              width="46"
-              height="46"
-              rx="14"
-              fill="#119B6B"
-            />
-            <path
-              d="M12 24.5L20.5 33L36 16"
-              stroke="white"
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M24 9C18 9 14 13 14 18"
-              stroke="#B7F7D8"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-          </svg>
+  viewBox="0 0 100 100"
+  className="uv-logo"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-label="UnityVol logo"
+>
+  <defs>
+    <linearGradient
+      id="unityVolGreenSharedSidebar"
+      x1="0"
+      y1="0"
+      x2="1"
+      y2="1"
+    >
+      <stop offset="0%" stopColor="#28C76F" />
+      <stop offset="100%" stopColor="#07865A" />
+    </linearGradient>
+  </defs>
 
-          <span className="uv-brand-text">
-            <span className="uv-brand-name">
-              Unity<span className="uv-brand-highlight">Vol</span>
-            </span>
-            <span className="uv-brand-caption">
-              COMMUNITY & VOLUNTEER
-            </span>
-          </span>
+  <circle
+    cx="50"
+    cy="17"
+    r="10"
+    fill="url(#unityVolGreenSharedSidebar)"
+  />
+
+  <path
+    d="M44 43 C28 41 18 30 22 20 C34 22 44 30 47 40Z"
+    fill="url(#unityVolGreenSharedSidebar)"
+  />
+
+  <path
+    d="M56 43 C72 41 82 30 78 20 C66 22 56 30 53 40Z"
+    fill="url(#unityVolGreenSharedSidebar)"
+  />
+
+  <path
+    d="M42 37 C42 31 46 29 50 29 C54 29 58 31 58 37 L58 57 L50 69 L42 57Z"
+    fill="url(#unityVolGreenSharedSidebar)"
+  />
+
+  <path
+    d="M45 72 C27 68 10 53 12 35 C29 39 43 52 48 66Z"
+    fill="url(#unityVolGreenSharedSidebar)"
+  />
+
+  <path
+    d="M55 72 C73 68 90 53 88 35 C71 39 57 52 52 66Z"
+    fill="url(#unityVolGreenSharedSidebar)"
+  />
+
+  <path
+    d="M50 76 L50 47 M50 65 C40 55 32 50 25 47 M50 65 C60 55 68 50 75 47"
+    fill="none"
+    stroke="#FFFFFF"
+    strokeWidth="3"
+    strokeLinecap="round"
+  />
+</svg>
+
+<span className="uv-brand-text">
+  <span className="uv-brand-name">
+    Unity<span className="uv-brand-highlight">Vol</span>
+  </span>
+
+  <span className="uv-brand-caption">
+    PEOPLE · EVENTS · IMPACT
+  </span>
+</span>
         </Link>
 
         <nav className="uv-nav" aria-label="Volunteer navigation">

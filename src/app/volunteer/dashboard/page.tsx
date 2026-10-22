@@ -1,8 +1,7 @@
-
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import VolunteerSidebar from "@/components/VolunteerSidebar";
 import {
   Compass,
@@ -16,6 +15,9 @@ import {
   HandHeart,
   CheckCircle2,
   Search,
+  UserRound,
+  LogOut,
+  ChevronDown,
 } from "lucide-react";
 
 type VolunteerEvent = {
@@ -70,17 +72,42 @@ const events: VolunteerEvent[] = [
   },
 ];
 
-
 export default function VolunteerDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [currentTime, setCurrentTime] = useState<number | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
+
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setCurrentTime(Date.now());
   }, []);
 
-  const registeredEvents = events.filter((event) => event.registered);
+  // Click outside করলে profile dropdown বন্ধ হবে
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
+        setShowProfile(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+    };
+  }, []);
+
+  const registeredEvents = events.filter(
+    (event) => event.registered
+  );
 
   const upcomingEvents = events.filter((event) => {
     if (currentTime === null) return true;
@@ -93,8 +120,6 @@ export default function VolunteerDashboard() {
       .toLowerCase()
       .includes(search.toLowerCase())
   );
-
-
 
   return (
     <div className="volunteer-app">
@@ -120,10 +145,11 @@ export default function VolunteerDashboard() {
           margin-left: 246px;
         }
 
+        /* NAVBAR */
         .v-topbar {
           position: sticky;
           top: 0;
-          z-index: 10;
+          z-index: 20;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -139,19 +165,24 @@ export default function VolunteerDashboard() {
           display: flex;
           align-items: center;
           gap: 12px;
+          flex: 1;
+          min-width: 0;
         }
 
         .v-top-title {
           color: #607089;
           font-size: 12px;
+          white-space: nowrap;
         }
 
+        /* SEARCH BOX */
         .v-search {
           display: flex;
           align-items: center;
           gap: 9px;
-          width: min(100%, 280px);
+          width: min(100%, 260px);
           height: 38px;
+          flex-shrink: 1;
           padding: 0 12px;
           border: 1px solid #e0e7f0;
           border-radius: 9px;
@@ -169,17 +200,152 @@ export default function VolunteerDashboard() {
           font-size: 12px;
         }
 
+        .v-search:focus-within {
+          border-color: #0d9669;
+          box-shadow: 0 0 0 3px #0d966910;
+        }
+
+        /* RIGHT SIDE */
+        .v-top-right {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 20px;
+          margin-left: auto;
+        }
+
+        /* PROFILE BUTTON */
+        .v-profile-wrap {
+          position: relative;
+          flex-shrink: 0;
+        }
+
+        .v-profile {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 5px 7px;
+          border: 1px solid transparent;
+          border-radius: 10px;
+          background: transparent;
+          color: #293b52;
+          text-align: left;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .v-profile:hover {
+          background: #f4f7fb;
+          border-color: #e7edf4;
+        }
+
+        .v-avatar {
+          display: grid;
+          place-items: center;
+          width: 35px;
+          height: 35px;
+          flex-shrink: 0;
+          border-radius: 50%;
+          background: #d7e6f6;
+          color: #26578d;
+          font-size: 11px;
+          font-weight: 800;
+        }
+
+        .v-profile-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .v-profile-info strong {
+          color: #24334a;
+          font-size: 12px;
+          font-weight: 750;
+        }
+
+        .v-profile-info small {
+          color: #8795a8;
+          font-size: 10px;
+        }
+
+        .v-profile > svg {
+          color: #8795a8;
+          transition: transform 0.2s;
+        }
+
+        .v-profile .v-chevron-open {
+          transform: rotate(180deg);
+        }
+
+        /* PROFILE DROPDOWN */
+        .v-profile-dropdown {
+          position: absolute;
+          top: calc(100% + 9px);
+          right: 0;
+          z-index: 50;
+          width: 175px;
+          padding: 7px;
+          border: 1px solid #e6ebf2;
+          border-radius: 10px;
+          background: white;
+          box-shadow: 0 12px 30px #182b4417;
+          animation: v-dropdown-in 0.15s ease-out;
+        }
+
+        @keyframes v-dropdown-in {
+          from {
+            opacity: 0;
+            transform: translateY(-5px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .v-dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          width: 100%;
+          padding: 10px;
+          border: 0;
+          border-radius: 6px;
+          background: white;
+          color: #40516a;
+          font-size: 12px;
+          text-align: left;
+          text-decoration: none;
+          cursor: pointer;
+        }
+
+        .v-dropdown-item:hover {
+          background: #f4f8f6;
+        }
+
+        .v-logout {
+          color: #dc2626;
+        }
+
+        .v-logout:hover {
+          background: #fef2f2;
+        }
+
+        /* MOBILE MENU */
         .v-mobile-menu {
           display: none;
           place-items: center;
           width: 37px;
           height: 37px;
+          flex-shrink: 0;
           border: 1px solid #e1e8f0;
           border-radius: 9px;
           background: white;
           cursor: pointer;
         }
 
+        /* CONTENT */
         .v-content {
           max-width: 1500px;
           margin: 0 auto;
@@ -207,6 +373,7 @@ export default function VolunteerDashboard() {
           margin: 0;
           font-size: 28px;
           letter-spacing: -0.8px;
+          font-weight: 800;
         }
 
         .v-subtitle {
@@ -238,6 +405,7 @@ export default function VolunteerDashboard() {
           background: #087b56;
         }
 
+        /* STATS */
         .v-stats {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -294,6 +462,7 @@ export default function VolunteerDashboard() {
           font-size: 10px;
         }
 
+        /* PANELS */
         .v-panel {
           margin-bottom: 22px;
           overflow: hidden;
@@ -335,6 +504,7 @@ export default function VolunteerDashboard() {
           color: #087b56;
         }
 
+        /* EVENTS */
         .v-event-list {
           display: grid;
         }
@@ -424,6 +594,7 @@ export default function VolunteerDashboard() {
           text-align: center;
         }
 
+        /* BOTTOM SECTION */
         .v-bottom-grid {
           display: grid;
           grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
@@ -467,6 +638,7 @@ export default function VolunteerDashboard() {
           line-height: 1.8;
         }
 
+        /* TABLET */
         @media (max-width: 1100px) {
           .v-content {
             padding: 22px;
@@ -483,8 +655,18 @@ export default function VolunteerDashboard() {
           .v-bottom-grid {
             grid-template-columns: 1fr;
           }
+
+          .v-topbar {
+            padding-right: 18px;
+            padding-left: 18px;
+          }
+
+          .v-top-right {
+            gap: 12px;
+          }
         }
 
+        /* MOBILE */
         @media (max-width: 900px) {
           .v-main {
             margin-left: 0;
@@ -510,12 +692,31 @@ export default function VolunteerDashboard() {
           }
 
           .v-top-left {
+            width: auto;
+            flex: 1;
+            min-width: 0;
+          }
+
+          .v-top-title {
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .v-top-right {
             width: 100%;
+            gap: 10px;
           }
 
           .v-search {
-            width: 100%;
+            width: auto;
             max-width: none;
+            flex: 1;
+            min-width: 0;
+          }
+
+          .v-profile-info,
+          .v-profile > svg {
+            display: none;
           }
 
           .v-welcome {
@@ -564,6 +765,7 @@ export default function VolunteerDashboard() {
       />
 
       <main className="v-main">
+        {/* NAVBAR */}
         <header className="v-topbar">
           <div className="v-top-left">
             <button
@@ -580,17 +782,66 @@ export default function VolunteerDashboard() {
             </span>
           </div>
 
-          <label className="v-search">
-            <Search size={16} />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search upcoming events..."
-              aria-label="Search upcoming events"
-            />
-          </label>
+          <div className="v-top-right">
+            {/* SEARCH */}
+            <label className="v-search">
+              <Search size={16} />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search upcoming events..."
+                aria-label="Search upcoming events"
+              />
+            </label>
+
+            {/* PROFILE DROPDOWN */}
+            <div className="v-profile-wrap" ref={profileRef}>
+              <button
+                type="button"
+                className="v-profile"
+                onClick={() => setShowProfile((open) => !open)}
+                aria-expanded={showProfile}
+                aria-label="Open profile menu"
+              >
+                <span className="v-avatar">SA</span>
+
+                <span className="v-profile-info">
+                  <strong>Sarah Ahmed</strong>
+                  <small>Volunteer</small>
+                </span>
+
+                <ChevronDown
+                  size={15}
+                  className={showProfile ? "v-chevron-open" : ""}
+                />
+              </button>
+
+              {showProfile && (
+                <div className="v-profile-dropdown">
+                  <Link
+                    href="/volunteer/profile"
+                    className="v-dropdown-item"
+                    onClick={() => setShowProfile(false)}
+                  >
+                    <UserRound size={16} />
+                    My Profile
+                  </Link>
+
+                  <Link
+                    href="/login"
+                    className="v-dropdown-item v-logout"
+                    onClick={() => setShowProfile(false)}
+                  >
+                    <LogOut size={16} />
+                    Log out
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
         </header>
 
+        {/* DASHBOARD CONTENT */}
         <section className="v-content">
           <div className="v-welcome">
             <div>
@@ -609,6 +860,7 @@ export default function VolunteerDashboard() {
             </Link>
           </div>
 
+          {/* STATS */}
           <div className="v-stats">
             <div className="v-stat">
               <div className="v-stat-top">
@@ -672,6 +924,7 @@ export default function VolunteerDashboard() {
             </div>
           </div>
 
+          {/* UPCOMING EVENTS */}
           <section className="v-panel">
             <div className="v-panel-head">
               <div>
@@ -751,7 +1004,7 @@ export default function VolunteerDashboard() {
                         </span>
                       ) : (
                         <Link
-                          href={`/volunteer/events/${event.id}`}
+                          href="/volunteer/events"
                           className="v-text-link"
                         >
                           View details <ArrowRight size={14} />
@@ -768,6 +1021,7 @@ export default function VolunteerDashboard() {
             </div>
           </section>
 
+          {/* MY PARTICIPATION */}
           <div className="v-bottom-grid">
             <section className="v-panel">
               <div className="v-panel-head">
@@ -778,7 +1032,10 @@ export default function VolunteerDashboard() {
                   </p>
                 </div>
 
-                <Link href="/volunteer/my-events" className="v-text-link">
+                <Link
+                  href="/volunteer/my-events"
+                  className="v-text-link"
+                >
                   View all <ArrowRight size={14} />
                 </Link>
               </div>
@@ -836,6 +1093,7 @@ export default function VolunteerDashboard() {
               </div>
             </section>
 
+            {/* TIP */}
             <section className="v-panel v-tip">
               <div className="v-tip-icon">
                 <HandHeart size={22} />

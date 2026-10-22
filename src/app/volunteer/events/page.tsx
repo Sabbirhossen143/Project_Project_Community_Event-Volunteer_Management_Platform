@@ -1,18 +1,20 @@
-
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import VolunteerSidebar from "@/components/VolunteerSidebar";
+import EventDetailsModal, {
+  type EventDetailsData,
+} from "@/components/EventDetailsModal";
+
 import {
   Search,
   MapPin,
   CalendarDays,
   Clock3,
-  ArrowRight,
   HandHeart,
-  Menu,
+  CheckCircle2,
   X,
+  Menu,
   SlidersHorizontal,
 } from "lucide-react";
 
@@ -114,7 +116,18 @@ const categories = [
 export default function BrowseEventsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All Events");
+  const [activeCategory, setActiveCategory] =
+    useState("All Events");
+
+  const [selectedEvent, setSelectedEvent] =
+    useState<EventDetailsData | null>(null);
+
+  const [registerEvent, setRegisterEvent] =
+    useState<EventItem | null>(null);
+
+  const [motivation, setMotivation] = useState("");
+  const [registrationSubmitted, setRegistrationSubmitted] =
+    useState(false);
 
   const filteredEvents = events.filter((event) => {
     const matchesCategory =
@@ -144,7 +157,8 @@ export default function BrowseEventsPage() {
         }
 
         button,
-        input {
+        input,
+        textarea {
           font: inherit;
         }
 
@@ -211,6 +225,7 @@ export default function BrowseEventsPage() {
           margin: 0;
           font-size: 28px;
           letter-spacing: -0.8px;
+          font-weight: 700;
         }
 
         .browse-subtitle {
@@ -317,9 +332,7 @@ export default function BrowseEventsPage() {
           border-radius: 14px;
           background: white;
           box-shadow: 0 3px 10px #243b5305;
-          transition:
-            transform 0.2s,
-            box-shadow 0.2s;
+          transition: transform 0.2s, box-shadow 0.2s;
         }
 
         .browse-card:hover {
@@ -396,21 +409,39 @@ export default function BrowseEventsPage() {
           color: #0d9669;
         }
 
-        .browse-details {
+        .browse-card-actions {
           display: flex;
+          flex-direction: row;
           align-items: center;
           justify-content: space-between;
-          gap: 10px;
+          width: 100%;
+          gap: 12px;
           margin-top: 3px;
           padding-top: 15px;
           border-top: 1px solid #f0f3f7;
-          color: #0d9669;
-          font-size: 11px;
-          font-weight: 800;
-          text-decoration: none;
         }
 
-        .browse-details:hover {
+        .browse-details,
+        .browse-register {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 9px 14px;
+          border: 1px solid #0d9669;
+          border-radius: 8px;
+          background: transparent;
+          color: #0d9669;
+          font-size: 12px;
+          font-weight: 700;
+          text-decoration: none;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .browse-details:hover,
+        .browse-register:hover {
+          border-color: #087b56;
+          background: #ecfdf5;
           color: #087b56;
         }
 
@@ -490,7 +521,7 @@ export default function BrowseEventsPage() {
       `}</style>
 
       <VolunteerSidebar
-        activePage="Events"
+        activePage="Browse Events"
         sidebarOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         userName="Sarah Ahmed"
@@ -520,7 +551,9 @@ export default function BrowseEventsPage() {
               <p className="browse-eyebrow">
                 Make a difference today
               </p>
+
               <h1>Browse Events</h1>
+
               <p className="browse-subtitle">
                 Discover opportunities, connect with your community,
                 and turn your time into meaningful impact.
@@ -535,6 +568,7 @@ export default function BrowseEventsPage() {
           <div className="browse-toolbar">
             <label className="browse-search">
               <Search size={17} />
+
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -613,13 +647,27 @@ export default function BrowseEventsPage() {
                       </div>
                     </div>
 
-                    <Link
-                      href={`/volunteer/events/${event.id}`}
-                      className="browse-details"
-                    >
-                      View Details
-                      <ArrowRight size={15} />
-                    </Link>
+                    <div className="browse-card-actions">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedEvent(event)}
+                        className="browse-details"
+                      >
+                        View Details
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRegisterEvent(event);
+                          setMotivation("");
+                          setRegistrationSubmitted(false);
+                        }}
+                        className="browse-register"
+                      >
+                        Register
+                      </button>
+                    </div>
                   </div>
                 </article>
               ))
@@ -635,6 +683,159 @@ export default function BrowseEventsPage() {
           </div>
         </section>
       </main>
+
+      {/* Registration Popup */}
+      {registerEvent && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setRegisterEvent(null);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="registration-title"
+            className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
+          >
+            <button
+              type="button"
+              onClick={() => setRegisterEvent(null)}
+              aria-label="Close registration form"
+              className="absolute right-4 top-4 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+            >
+              <X size={20} />
+            </button>
+
+            {registrationSubmitted ? (
+              <div className="py-10 text-center">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-50 text-emerald-700">
+                  <CheckCircle2 size={34} />
+                </div>
+
+                <h2 className="mt-5 text-2xl font-extrabold text-slate-900">
+                  Registration Submitted!
+                </h2>
+
+                <p className="mt-3 text-sm leading-6 text-slate-500">
+                  This is a frontend demo. Your registration has not
+                  been saved to a database.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setRegisterEvent(null)}
+                  className="mt-6 rounded-xl bg-emerald-700 px-6 py-3 text-sm font-bold text-white hover:bg-emerald-800"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs font-extrabold uppercase tracking-widest text-emerald-700">
+                  Join the event
+                </p>
+
+                <h2
+                  id="registration-title"
+                  className="mt-2 pr-8 text-2xl font-extrabold text-slate-900"
+                >
+                  Registration Form
+                </h2>
+
+                <p className="mt-2 text-sm text-slate-500">
+                  Event: {registerEvent.title}
+                </p>
+
+                <form
+                  className="mt-6 space-y-4"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setRegistrationSubmitted(true);
+                  }}
+                >
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      Full Name
+                    </label>
+
+                    <input
+                      value="Sarah Ahmed"
+                      readOnly
+                      className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      Email Address
+                    </label>
+
+                    <input
+                      type="email"
+                      value="sarah.ahmed@example.com"
+                      readOnly
+                      className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      Phone Number
+                    </label>
+
+                    <input
+                      type="tel"
+                      value="01700000000"
+                      readOnly
+                      className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="registration-motivation"
+                      className="mb-2 block text-sm font-bold text-slate-700"
+                    >
+                      Why do you want to volunteer?
+                    </label>
+
+                    <textarea
+                      id="registration-motivation"
+                      required
+                      rows={4}
+                      value={motivation}
+                      onChange={(e) => setMotivation(e.target.value)}
+                      placeholder="Tell us why you want to join..."
+                      className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 text-sm font-extrabold text-white hover:bg-emerald-800"
+                  >
+                    Submit Registration
+                    <HandHeart size={17} />
+                  </button>
+
+                  <p className="text-center text-xs leading-5 text-slate-400">
+                    Your registration requires organizer approval.
+                  </p>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Event Details Modal */}
+      <EventDetailsModal
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+      />
     </div>
   );
 }
