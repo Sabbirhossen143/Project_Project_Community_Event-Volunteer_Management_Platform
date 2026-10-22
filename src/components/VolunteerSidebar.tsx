@@ -10,6 +10,7 @@ import {
   LogOut,
   Leaf,
   CalendarCheck,
+   Heart,
 } from "lucide-react";
 
 
@@ -18,6 +19,7 @@ type VolunteerSidebarProps = {
     | "Dashboard"
     | "Browse Events"
     | "My Events"
+    | "Favorites"
     | "Activity History"
     | "Profile"
     | "My Profile"
@@ -46,6 +48,11 @@ const navItems = [
     href: "/volunteer/my-events",
     icon: ClipboardList,
   },
+  {
+  label: "Favorites",
+  href: "/volunteer/favorites",
+  icon: Heart,
+},
   {
     label: "Activity History",
     href: "/volunteer/activity-history",

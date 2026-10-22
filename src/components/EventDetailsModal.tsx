@@ -12,6 +12,7 @@ import {
   Users,
   ClipboardCheck,
   ArrowUpRight,
+  Share2,
 } from "lucide-react";
 
 export type EventDetailsData = {
@@ -210,21 +211,68 @@ export default function EventDetailsModal({
           </div>
         </div>
 
-        <footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <p className="text-[10px] text-slate-400">
-            Event ID: #{event.id}
-            {event.status ? ` · ${event.status}` : ""}
-          </p>
+        
+<footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+  <p className="text-[10px] text-slate-400">
+    Event ID: #{event.id}
+    {event.status ? ` · ${event.status}` : ""}
+  </p>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 text-xs font-extrabold text-white transition hover:bg-emerald-800"
-          >
-            Got it
-            <ArrowUpRight size={15} />
-          </button>
-        </footer>
+  <div className="flex flex-col gap-2 sm:flex-row">
+    <button
+      type="button"
+      onClick={async () => {
+        const shareUrl = new URL(
+          `/volunteer/events?event=${event.id}`,
+          window.location.origin
+        ).toString();
+
+        const shareText = `Check out this volunteer event: ${event.title}`;
+
+        try {
+          if (navigator.share) {
+            await navigator.share({
+              title: event.title,
+              text: shareText,
+              url: shareUrl,
+            });
+          } else {
+            await navigator.clipboard.writeText(
+              `${shareText}\n${shareUrl}`
+            );
+            alert("Event link copied!");
+          }
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            error.name !== "AbortError"
+          ) {
+            try {
+              await navigator.clipboard.writeText(shareUrl);
+              alert("Event link copied!");
+            } catch {
+              alert("Could not share the event. Please try again.");
+            }
+          }
+        }
+      }}
+      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-5 text-xs font-extrabold text-emerald-800 transition hover:bg-emerald-50"
+    >
+      <Share2 size={15} />
+      Share Event
+    </button>
+
+    <button
+      type="button"
+      onClick={onClose}
+      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 text-xs font-extrabold text-white transition hover:bg-emerald-800"
+    >
+      Got it
+      <ArrowUpRight size={15} />
+    </button>
+  </div>
+</footer>
+
       </section>
     </div>
   );

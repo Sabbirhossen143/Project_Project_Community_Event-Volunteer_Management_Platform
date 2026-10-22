@@ -1,6 +1,7 @@
 "use client";
 
 import OrganizerSidebar from "@/components/OrganizerSidebar";
+import OrganizerAIChat from "@/components/Organizer/OrganizerAIChat";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -445,6 +446,9 @@ export default function ManageEventsPage() {
           </section>
         </section>
       </main>
+
+      <OrganizerAIChat />
+
     </div>
   );
 }

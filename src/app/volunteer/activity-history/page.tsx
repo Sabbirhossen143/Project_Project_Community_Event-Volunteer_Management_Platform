@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import VolunteerSidebar from "@/components/VolunteerSidebar";
+import VolunteerAIChat from "@/components/volunteer/VolunteerAIChat";
 import {
   Menu,
   X,
@@ -1015,6 +1016,8 @@ export default function ActivityHistoryPage() {
         </section>
       </main>
 
+      <VolunteerAIChat />
+
       {/* ACTIVITY DETAILS MODAL */}
       {selectedActivity && (
         <div
@@ -1081,6 +1084,9 @@ export default function ActivityHistoryPage() {
           </div>
         </div>
       )}
+      
     </div>
+    
   );
+  
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import OrganizerSidebar from "@/components/OrganizerSidebar";
+import OrganizerAIChat from "@/components/Organizer/OrganizerAIChat";
 import {
   CalendarPlus,
   CalendarDays,
@@ -1220,6 +1221,7 @@ export default function CreateEventPage() {
           </form>
         </div>
       </main>
+      <OrganizerAIChat />
     </div>
   );
 }

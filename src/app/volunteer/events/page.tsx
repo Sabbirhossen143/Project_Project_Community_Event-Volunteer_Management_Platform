@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import VolunteerSidebar from "@/components/VolunteerSidebar";
+import VolunteerAIChat from "@/components/volunteer/VolunteerAIChat";
 import EventDetailsModal, {
   type EventDetailsData,
 } from "@/components/EventDetailsModal";
@@ -13,10 +15,13 @@ import {
   Clock3,
   HandHeart,
   CheckCircle2,
+  QrCode,
   X,
   Menu,
   SlidersHorizontal,
+  Heart,
 } from "lucide-react";
+
 
 type EventItem = {
   id: number;
@@ -119,8 +124,52 @@ export default function BrowseEventsPage() {
   const [activeCategory, setActiveCategory] =
     useState("All Events");
 
+  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+
+  useEffect(() => {
+  const saved = localStorage.getItem("volunteerFavorites");
+
+  if (saved) {
+    try {
+      setFavoriteIds(JSON.parse(saved));
+    } catch {
+      setFavoriteIds([]);
+    }
+  }
+}, []);
+
+const toggleFavorite = (eventId: number) => {
+  setFavoriteIds((previous) => {
+    const updated = previous.includes(eventId)
+      ? previous.filter((id) => id !== eventId)
+      : [...previous, eventId];
+
+    localStorage.setItem(
+      "volunteerFavorites",
+      JSON.stringify(updated)
+    );
+
+    return updated;
+  });
+};
+
   const [selectedEvent, setSelectedEvent] =
     useState<EventDetailsData | null>(null);
+  // Open a shared event automatically from the URL
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const eventId = Number(params.get("event"));
+
+  if (!eventId) return;
+
+  const matchedEvent = events.find(
+    (event) => event.id === eventId
+  );
+
+  if (matchedEvent) {
+    setSelectedEvent(matchedEvent);
+  }
+}, []);
 
   const [registerEvent, setRegisterEvent] =
     useState<EventItem | null>(null);
@@ -346,7 +395,45 @@ export default function BrowseEventsPage() {
           justify-content: space-between;
           min-height: 112px;
           padding: 20px;
+          position: relative;
         }
+
+        .browse-favorite-btn {
+  position: static;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-left: 12px;
+  border: 1px solid #ffffffb8;
+  border-radius: 50%;
+  background: #ffffffed;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.browse-favorite-btn:hover {
+  transform: scale(1.08);
+  color: #ef4444;
+}
+
+.browse-favorite-btn.is-favorite {
+  color: #ef4444;
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+
+.browse-category-tag {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 7px 10px;
+  border-radius: 20px;
+  background: #ffffffd9;
+  font-size: 10px;
+  font-weight: 800;
+}
 
         .browse-card-icon {
           display: grid;
@@ -358,13 +445,7 @@ export default function BrowseEventsPage() {
           background: #ffffffb8;
         }
 
-        .browse-category-tag {
-          padding: 7px 10px;
-          border-radius: 20px;
-          background: #ffffffd9;
-          font-size: 10px;
-          font-weight: 800;
-        }
+        
 
         .browse-card-body {
           display: flex;
@@ -619,6 +700,28 @@ export default function BrowseEventsPage() {
                     >
                       {event.category}
                     </span>
+                    <button
+  type="button"
+  className={`browse-favorite-btn ${
+    favoriteIds.includes(event.id) ? "is-favorite" : ""
+  }`}
+  onClick={() => toggleFavorite(event.id)}
+  aria-label={
+    favoriteIds.includes(event.id)
+      ? "Remove from favorites"
+      : "Add to favorites"
+  }
+  title={
+    favoriteIds.includes(event.id)
+      ? "Remove from favorites"
+      : "Add to favorites"
+  }
+>
+  <Heart
+    size={19}
+    fill={favoriteIds.includes(event.id) ? "currentColor" : "none"}
+  />
+</button>
                   </div>
 
                   <div className="browse-card-body">
@@ -684,6 +787,8 @@ export default function BrowseEventsPage() {
         </section>
       </main>
 
+      <VolunteerAIChat />
+
       {/* Registration Popup */}
       {registerEvent && (
         <div
@@ -710,29 +815,87 @@ export default function BrowseEventsPage() {
             </button>
 
             {registrationSubmitted ? (
-              <div className="py-10 text-center">
-                <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-50 text-emerald-700">
-                  <CheckCircle2 size={34} />
-                </div>
+  <div className="py-3 text-center">
+    {/* Success Heading */}
+    <div className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-emerald-50 text-emerald-700">
+      <CheckCircle2 size={25} />
+    </div>
 
-                <h2 className="mt-5 text-2xl font-extrabold text-slate-900">
-                  Registration Submitted!
-                </h2>
+    <h2 className="mt-3 text-xl font-extrabold text-slate-900">
+      Registration Submitted!
+    </h2>
 
-                <p className="mt-3 text-sm leading-6 text-slate-500">
-                  This is a frontend demo. Your registration has not
-                  been saved to a database.
-                </p>
+    <p className="mt-1 text-xs text-slate-500">
+      Your registration was submitted successfully.
+    </p>
 
-                <button
-                  type="button"
-                  onClick={() => setRegisterEvent(null)}
-                  className="mt-6 rounded-xl bg-emerald-700 px-6 py-3 text-sm font-bold text-white hover:bg-emerald-800"
-                >
-                  Done
-                </button>
-              </div>
-            ) : (
+    {/* Name & Email */}
+    <div className="mx-auto mt-4 grid max-w-sm grid-cols-2 gap-3 rounded-xl border border-slate-200 p-3 text-left">
+      <div className="min-w-0">
+        <p className="text-[11px] text-slate-500">Name</p>
+        <p className="mt-1 truncate text-xs font-bold text-slate-900">
+          Sarah Ahmed
+        </p>
+      </div>
+
+      <div className="min-w-0">
+        <p className="text-[11px] text-slate-500">Email</p>
+        <p className="mt-1 truncate text-xs font-bold text-slate-900">
+          sarah.ahmed@example.com
+        </p>
+      </div>
+    </div>
+
+    {/* Compact QR Code */}
+    <div className="mx-auto mt-4 w-full max-w-sm rounded-xl border border-slate-200 p-3">
+      <div className="flex items-center justify-center gap-2">
+        <QrCode size={17} className="text-emerald-700" />
+        <h3 className="text-sm font-bold text-slate-900">
+          Registration QR Code
+        </h3>
+      </div>
+
+      <div className="mt-3 flex justify-center">
+        <QRCodeSVG
+          value={JSON.stringify({
+            registrationId: `UV-REG-${registerEvent.id}`,
+            eventId: registerEvent.id,
+            eventName: registerEvent.title,
+          })}
+          size={125}
+          level="H"
+          includeMargin
+        />
+      </div>
+
+      {/* Event Information */}
+      <div className="mt-3 rounded-lg bg-slate-50 p-3 text-left">
+        <p className="text-[11px] text-slate-500">Event</p>
+        <p className="mt-1 text-xs font-bold text-slate-900">
+          {registerEvent.title}
+        </p>
+
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <span className="text-[11px] text-slate-500">
+            Registration ID
+          </span>
+          <span className="font-mono text-xs font-bold text-emerald-700">
+            UV-REG-{registerEvent.id}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    {/* Done Button */}
+    <button
+      type="button"
+      onClick={() => setRegisterEvent(null)}
+      className="mt-4 rounded-lg bg-emerald-700 px-7 py-2.5 text-sm font-bold text-white hover:bg-emerald-800"
+    >
+      Done
+    </button>
+  </div>
+) : (
               <>
                 <p className="text-xs font-extrabold uppercase tracking-widest text-emerald-700">
                   Join the event
@@ -833,9 +996,16 @@ export default function BrowseEventsPage() {
 
       {/* Event Details Modal */}
       <EventDetailsModal
-        event={selectedEvent}
-        onClose={() => setSelectedEvent(null)}
-      />
+  event={selectedEvent}
+  onClose={() => {
+    setSelectedEvent(null);
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("event");
+
+    window.history.replaceState({}, "", url.toString());
+  }}
+/>
     </div>
   );
 }

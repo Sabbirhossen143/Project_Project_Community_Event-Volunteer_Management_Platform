@@ -1,6 +1,7 @@
 "use client";
 
 import OrganizerSidebar from "@/components/OrganizerSidebar";
+import OrganizerAIChat from "@/components/Organizer/OrganizerAIChat";
 import { useMemo, useState } from "react";
 import {
   CalendarDays,
@@ -1122,6 +1123,9 @@ export default function AnalyticsPage() {
           <span>Analytics overview</span>
         </footer>
       </main>
+
+      <OrganizerAIChat />
+
     </div>
   );
 }

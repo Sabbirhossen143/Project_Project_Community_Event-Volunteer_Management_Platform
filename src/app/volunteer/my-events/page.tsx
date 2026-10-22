@@ -2,8 +2,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import Link from "next/link";
 import VolunteerSidebar from "@/components/VolunteerSidebar";
+import VolunteerAIChat from "@/components/volunteer/VolunteerAIChat";
 import EventDetailsModal, {
   type EventDetailsData,
 } from "@/components/EventDetailsModal";
@@ -20,7 +22,9 @@ import {
   CheckCircle2,
   ClockAlert,
   ClipboardList,
+  QrCode,
 } from "lucide-react";
+
 
 type MyEvent = {
   id: number;
@@ -107,6 +111,9 @@ const handleCancelRegistration = (eventId: number) => {
 
   const [selectedEvent, setSelectedEvent] =
   useState<EventDetailsData | null>(null);
+
+  const [selectedQrEvent, setSelectedQrEvent] =
+  useState<MyEvent | null>(null);
 
   useEffect(() => {
     const today = new Date();
@@ -522,6 +529,33 @@ const handleCancelRegistration = (eventId: number) => {
           color: #b91c1c;
         }
 
+        .me-status-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.me-qr-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid #bbf7d0;
+  border-radius: 9px;
+  background: #f0fdf4;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.me-qr-button:hover {
+  background: #dcfce7;
+}
+
         .me-details {
           display: inline-flex;
           align-items: center;
@@ -802,24 +836,37 @@ const handleCancelRegistration = (eventId: number) => {
                     </div>
 
                     <div className="me-event-right">
-                      <span
-                        className={`me-status ${
-                          event.status === "Pending"
-                            ? "pending"
-                            : event.status === "Cancelled"
-                              ? "cancelled"
-                              : ""
-                        }`}
-                      >
-                        {event.status === "Confirmed" ? (
-                          <CheckCircle2 size={12} />
-                        ) : (
-                          <ClockAlert size={12} />
-                        )}
-                        {event.status}
-                      </span>
+  <div className="me-status-actions">
+    {event.status === "Confirmed" && (
+      <button
+        type="button"
+        className="me-qr-button"
+        onClick={() => setSelectedQrEvent(event)}
+      >
+        <QrCode size={15} />
+        QR Code
+      </button>
+    )}
 
-                      
+    <span
+      className={`me-status ${
+        event.status === "Pending"
+          ? "pending"
+          : event.status === "Cancelled"
+            ? "cancelled"
+            : ""
+      }`}
+    >
+      {event.status === "Confirmed" ? (
+        <CheckCircle2 size={12} />
+      ) : (
+        <ClockAlert size={12} />
+      )}
+      {event.status}
+    </span>
+  </div>
+
+                    
 <div className="me-event-actions">
   <button
     type="button"
@@ -857,10 +904,96 @@ const handleCancelRegistration = (eventId: number) => {
           </section>
         </section>
       </main>
-      <EventDetailsModal
-  event={selectedEvent}
-  onClose={() => setSelectedEvent(null)}
-/>
+
+      <VolunteerAIChat />
+
+      {selectedQrEvent && (
+  <div
+    className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+    onClick={(e) => {
+      if (e.target === e.currentTarget) {
+        setSelectedQrEvent(null);
+      }
+    }}
+  >
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="relative w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl sm:p-8"
+    >
+      <button
+        type="button"
+        onClick={() => setSelectedQrEvent(null)}
+        aria-label="Close QR code"
+        className="absolute right-4 top-4 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+      >
+        <X size={20} />
+      </button>
+
+      <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
+        <QrCode size={30} />
+      </div>
+
+      <h2 className="text-2xl font-extrabold text-slate-900">
+        Your Registration QR Code
+      </h2>
+
+      <p className="mt-2 text-sm text-slate-500">
+        Keep this QR code for your event registration.
+      </p>
+
+      <div className="mx-auto mt-6 flex w-fit items-center justify-center rounded-2xl border border-slate-200 bg-white p-4">
+        <QRCodeSVG
+          value={JSON.stringify({
+            registrationId: `UV-REG-${selectedQrEvent.id}`,
+            eventName: selectedQrEvent.title,
+            date: selectedQrEvent.date,
+            location: selectedQrEvent.location,
+          })}
+          size={210}
+          level="H"
+          includeMargin
+        />
+      </div>
+
+      <div className="mt-6 space-y-3 rounded-xl bg-slate-50 p-4 text-left">
+        <div>
+          <p className="text-xs font-semibold text-slate-500">
+            Event Name
+          </p>
+          <p className="mt-1 text-sm font-bold text-slate-900">
+            {selectedQrEvent.title}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold text-slate-500">
+            Registration ID
+          </p>
+          <p className="mt-1 font-mono text-sm font-bold text-emerald-700">
+            UV-REG-{selectedQrEvent.id}
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => window.print()}
+        className="mt-5 w-full rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800"
+      >
+        Print / Save QR Code
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setSelectedQrEvent(null)}
+        className="mt-3 w-full rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50"
+      >
+        Close
+      </button>
+    </div>
+  </div>
+)}
     </div>
   );
 }

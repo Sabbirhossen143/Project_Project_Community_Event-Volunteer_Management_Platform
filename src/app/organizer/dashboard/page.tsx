@@ -4,6 +4,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import OrganizerSidebar from "@/components/OrganizerSidebar";
+import OrganizerAIChat from "@/components/Organizer/OrganizerAIChat";
 import {
   LayoutDashboard,
   CalendarPlus,
@@ -157,19 +158,21 @@ export default function OrganizerDashboard() {
   const [period, setPeriod] = useState("Last 7 days");
   const [showProfile, setShowProfile] = useState(false);
   const [showAllRegistrations, setShowAllRegistrations] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [notice, setNotice] = useState("");
-
   const profileRef = useRef<HTMLDivElement>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [today, setToday] = useState<Date | null>(null);
+
 
 useEffect(() => {
   function handleOutsideClick(event: MouseEvent) {
     if (
-      profileRef.current &&
-      !profileRef.current.contains(event.target as Node)
-    ) {
-      setShowProfile(false);
-    }
+  profileRef.current &&
+  !profileRef.current.contains(event.target as Node)
+) {
+  setShowProfile(false);
+  setShowNotifications(false);
+}
   }
 
   document.addEventListener("mousedown", handleOutsideClick);
@@ -177,6 +180,12 @@ useEffect(() => {
   return () => {
     document.removeEventListener("mousedown", handleOutsideClick);
   };
+}, []);
+
+useEffect(() => {
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+  setToday(currentDate);
 }, []);
 
 
@@ -241,6 +250,36 @@ useEffect(() => {
   const upcomingList = events
     .filter((event) => event.status === "Upcoming")
     .slice(0, 4);
+
+  const eventReminders = useMemo(() => {
+  if (!today) return [];
+
+  return events
+    .filter((event) => event.status === "Upcoming")
+    .map((event) => {
+      const eventDate = new Date(event.date);
+      eventDate.setHours(0, 0, 0, 0);
+
+      const daysUntil = Math.round(
+        (eventDate.getTime() - today.getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      return {
+        ...event,
+        daysUntil,
+      };
+    })
+    .filter(
+      (event) =>
+        !Number.isNaN(event.daysUntil) &&
+        event.daysUntil >= 0
+    )
+    .sort((a, b) => a.daysUntil - b.daysUntil);
+}, [events, today]);
+
+const notificationCount =
+  eventReminders.length + recentRegistrations.length;
 
   function sendAiMessage(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -341,7 +380,6 @@ useEffect(() => {
   letter-spacing: 1.2px;
   white-space: nowrap;
 }
-
 
         .uv-nav {
           display: grid;
@@ -544,27 +582,36 @@ useEffect(() => {
         }
 
         .uv-bell {
-          position: relative;
-          display: grid;
-          width: 34px;
-          height: 34px;
-          place-items: center;
-          border: 0;
-          background: transparent;
-          color: #65758b;
-          cursor: pointer;
-        }
+  position: relative;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  place-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-        .uv-bell-dot {
-          position: absolute;
-          top: 5px;
-          right: 5px;
-          width: 7px;
-          height: 7px;
-          border: 2px solid white;
-          border-radius: 50%;
-          background: #ed6c75;
-        }
+.uv-bell:hover {
+  border-color: #10b981;
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.uv-bell-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #ef4444;
+}
 
         .uv-profile {
           display: flex;
@@ -607,6 +654,122 @@ useEffect(() => {
           background: white;
           box-shadow: 0 12px 30px #182b4417;
         }
+
+        .uv-notification-menu {
+  position: absolute;
+  top: 48px;
+  right: 45px;
+  z-index: 60;
+  width: min(360px, calc(100vw - 30px));
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid #e6ebf2;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 15px 40px #182b441c;
+}
+
+.uv-notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.uv-notification-header h3 {
+  margin: 0;
+  color: #24334a;
+  font-size: 14px;
+}
+
+.uv-notification-header p {
+  margin: 5px 0 0;
+  color: #8795a8;
+  font-size: 11px;
+}
+
+.uv-notification-count {
+  display: grid;
+  min-width: 25px;
+  height: 25px;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 50%;
+  background: #e5f8ef;
+  color: #087b56;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.uv-notification-list {
+  display: grid;
+}
+
+.uv-notification-item {
+  display: flex;
+  gap: 11px;
+  padding: 14px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.uv-notification-item:last-child {
+  border-bottom: 0;
+}
+
+.uv-notification-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  place-items: center;
+  border-radius: 10px;
+  background: #eaf9f3;
+  color: #0d9669;
+}
+
+.uv-notification-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.uv-notification-info strong {
+  display: block;
+  margin-bottom: 7px;
+  color: #24334a;
+  font-size: 12px;
+}
+
+.uv-notification-info span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  color: #7c8ba0;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.uv-notification-info p {
+  margin: 8px 0 0;
+  color: #0d9669;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.uv-notification-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 28px 15px;
+  color: #8795a8;
+  text-align: center;
+  font-size: 12px;
+}
+
+.uv-notification-empty p {
+  margin: 0;
+}
 
         .uv-profile-menu button {
           display: block;
@@ -1383,124 +1546,7 @@ useEffect(() => {
 
         .uv-mobile-scrim {
           display: none;
-        }
-
-        /* Floating UnityVol AI chat */
-        .uv-chat-launcher {
-          position: fixed;
-          right: 24px;
-          bottom: 24px;
-          z-index: 80;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 13px 18px;
-          border: 0;
-          border-radius: 999px;
-          background: linear-gradient(135deg, #10a875, #087a57);
-          color: #fff;
-          font-size: 13px;
-          font-weight: 750;
-          cursor: pointer;
-          box-shadow: 0 12px 32px #087a5740;
-          transition: transform .2s ease, box-shadow .2s ease;
-        }
-        .uv-chat-launcher:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 16px 38px #087a5750;
-        }
-        .uv-chat-window {
-          position: fixed;
-          right: 24px;
-          bottom: 88px;
-          z-index: 80;
-          display: flex;
-          width: min(390px, calc(100vw - 28px));
-          height: min(560px, calc(100dvh - 115px));
-          min-height: 360px;
-          flex-direction: column;
-          overflow: hidden;
-          border: 1px solid #dfe9e4;
-          border-radius: 18px;
-          background: #fff;
-          box-shadow: 0 24px 70px #132b3c30;
-          animation: uv-chat-in .18s ease-out;
-        }
-        @keyframes uv-chat-in {
-          from { opacity: 0; transform: translateY(10px) scale(.98); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .uv-chat-head {
-          display: flex;
-          align-items: center;
-          gap: 11px;
-          padding: 16px;
-          background: linear-gradient(120deg, #102b3b, #0d6048);
-          color: #fff;
-        }
-        .uv-chat-head-icon {
-          display: grid;
-          width: 42px;
-          height: 42px;
-          flex: none;
-          place-items: center;
-          border: 1px solid #ffffff30;
-          border-radius: 13px;
-          background: #ffffff18;
-          color: #75f0bd;
-        }
-        .uv-chat-head-copy { flex: 1; min-width: 0; }
-        .uv-chat-head-copy strong { display: block; font-size: 13px; }
-        .uv-chat-head-copy span {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          margin-top: 5px;
-          color: #c5e5d8;
-          font-size: 10px;
-        }
-        .uv-chat-online-dot { width: 6px; height: 6px; border-radius: 50%; background: #63e6a8; }
-        .uv-chat-close {
-          display: grid;
-          width: 33px;
-          height: 33px;
-          flex: none;
-          place-items: center;
-          border: 0;
-          border-radius: 9px;
-          background: #ffffff16;
-          color: white;
-          cursor: pointer;
-        }
-        .uv-chat-close:hover { background: #ffffff28; }
-        .uv-chat-intro {
-          padding: 12px 15px 0;
-          color: #8492a4;
-          font-size: 10px;
-          line-height: 1.5;
-        }
-        .uv-chat-window .uv-ai-suggestions { padding: 10px 14px; }
-        .uv-chat-window .uv-ai-suggestions button { font-size: 10px; }
-        .uv-chat-window .uv-ai-messages {
-          flex: 1;
-          min-height: 80px;
-          max-height: none;
-          padding: 14px;
-          border-top: 1px solid #edf1f5;
-        }
-        .uv-chat-window .uv-ai-message { font-size: 12px; }
-        .uv-chat-window .uv-ai-form { padding: 12px; }
-        .uv-chat-window .uv-ai-form input { font-size: 12px; }
-        .uv-chat-window .uv-ai-disclaimer { padding: 0 12px 12px; }
-        @media (max-width: 650px) {
-          .uv-chat-launcher { right: 14px; bottom: 14px; padding: 12px 15px; }
-          .uv-chat-window {
-            right: 10px;
-            bottom: 76px;
-            width: calc(100vw - 20px);
-            height: min(590px, calc(100dvh - 95px));
-          }
-        }
+      }
 
         @media (max-width: 1250px) {
           .uv-stats {
@@ -1574,10 +1620,25 @@ useEffect(() => {
           }
 
           .uv-profile-copy,
-          .uv-profile-chevron,
-          .uv-bell {
-            display: none !important;
-          }
+.uv-profile-chevron {
+  display: none !important;
+}
+
+.uv-bell {
+  display: grid !important;
+  width: 38px;
+  height: 38px;
+  flex: none;
+}
+
+.uv-notification-menu {
+  position: fixed;
+  top: 65px;
+  right: 10px;
+  width: calc(100vw - 20px);
+  max-width: 360px;
+  max-height: min(420px, calc(100dvh - 85px));
+}
 
           .uv-content {
             padding: 20px 13px 25px;
@@ -1690,13 +1751,129 @@ useEffect(() => {
 
           <div className="uv-top-right" ref={profileRef}>
             <button
-              className="uv-bell"
-              aria-label="Notifications"
-              onClick={() => setNotice("You're all caught up on notifications.")}
+  type="button"
+  className="uv-bell"
+  aria-label="Notifications"
+  aria-expanded={showNotifications}
+  onClick={() => {
+    setShowNotifications((current) => !current);
+    setShowProfile(false);
+  }}
+>
+  <Bell size={18} />
+
+  {notificationCount > 0 && (
+  <span className="uv-bell-dot" />
+)}
+</button>
+
+
+{showNotifications && (
+  <div className="uv-notification-menu">
+    <div className="uv-notification-header">
+      <div>
+        <h3>Notifications</h3>
+        <p>Event reminders and volunteer registrations</p>
+      </div>
+
+      <span className="uv-notification-count">
+        {notificationCount}
+      </span>
+    </div>
+
+    <div className="uv-notification-list">
+      {/* Event reminders */}
+      {eventReminders.map((event) => (
+        <div
+          className="uv-notification-item"
+          key={`event-${event.id}`}
+        >
+          <div className="uv-notification-icon">
+            <CalendarDays size={18} />
+          </div>
+
+          <div className="uv-notification-info">
+            <strong>Event Reminder: {event.title}</strong>
+
+            <span>
+              <CalendarDays size={12} />
+              {event.date}
+            </span>
+
+            <span>
+              <MapPin size={12} />
+              {event.location}
+            </span>
+
+            <p>
+              {event.daysUntil === 0
+                ? "Your event is today!"
+                : event.daysUntil === 1
+                ? "Your event is tomorrow!"
+                : `${event.daysUntil} days left until your event.`}
+            </p>
+          </div>
+        </div>
+      ))}
+
+      {/* Volunteer registration notifications */}
+      {recentRegistrations.map((person) => (
+        <div
+          className="uv-notification-item"
+          key={`volunteer-${person.id}`}
+        >
+          <div
+            className="uv-notification-icon"
+            style={{
+              background: "#eff6ff",
+              color: "#2563eb",
+            }}
+          >
+            <HandHeart size={18} />
+          </div>
+
+          <div className="uv-notification-info">
+            <strong>Volunteer Registration</strong>
+
+            <span>
+              <Users size={12} />
+              {person.name} registered
+            </span>
+
+            <span>
+              <CalendarDays size={12} />
+              {person.event}
+            </span>
+
+            <span>
+              <Clock size={12} />
+              Event date: {person.date}
+            </span>
+
+            <p
+              style={{
+                color:
+                  person.status === "Confirmed"
+                    ? "#059669"
+                    : "#d97706",
+              }}
             >
-              <Bell size={18} />
-              <span className="uv-bell-dot" />
-            </button>
+              Status: {person.status}
+            </p>
+          </div>
+        </div>
+      ))}
+
+      {/* Empty state */}
+      {notificationCount === 0 && (
+        <div className="uv-notification-empty">
+          <Bell size={26} />
+          <p>No notifications right now.</p>
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
             <button
               className="uv-profile"
@@ -2189,58 +2366,7 @@ useEffect(() => {
         </div>
       </main>
 
-      {/* Floating AI assistant */}
-      {isChatOpen ? (
-        <section className="uv-chat-window" role="dialog" aria-label="UnityVol AI Assistant">
-          <div className="uv-chat-head">
-            <div className="uv-chat-head-icon"><Sparkles size={22} /></div>
-            <div className="uv-chat-head-copy">
-              <strong>UnityVol AI Assistant</strong>
-              <span><i className="uv-chat-online-dot" /> Here to help you plan</span>
-            </div>
-            <button className="uv-chat-close" type="button" aria-label="Close AI chat" onClick={() => setIsChatOpen(false)}>
-              <X size={18} />
-            </button>
-          </div>
-          <div className="uv-chat-intro">Tell me about your community event. I can help you organize ideas and plan the next steps.</div>
-          <div className="uv-ai-suggestions">
-            {[
-              "Suggest a community event",
-              "Help recruit volunteers",
-              "Create an event plan",
-              "Suggest an environment project",
-            ].map((suggestion) => (
-              <button key={suggestion} type="button" onClick={() => setAiMessage(suggestion)}>
-                {suggestion}
-              </button>
-            ))}
-          </div>
-          <div className="uv-ai-messages" aria-live="polite">
-            {chatMessages.map((message, index) => (
-              <div key={index} className={`uv-ai-message ${message.role}`}>
-                {message.text}
-              </div>
-            ))}
-          </div>
-          <form className="uv-ai-form" onSubmit={sendAiMessage}>
-            <input
-              value={aiMessage}
-              onChange={(e) => setAiMessage(e.target.value)}
-              placeholder="Type your event requirements..."
-              aria-label="Enter event requirements"
-            />
-            <button className="uv-primary" type="submit" aria-label="Send message">
-              <Send size={15} />
-            </button>
-          </form>
-          <p className="uv-ai-disclaimer">Demo chat UI. Real AI replies require an AI API/backend connection.</p>
-        </section>
-      ) : (
-        <button className="uv-chat-launcher" type="button" onClick={() => setIsChatOpen(true)} aria-label="Open UnityVol AI Assistant">
-          <Sparkles size={20} />
-          <span>Ask UnityVol AI</span>
-        </button>
-      )}
+      <OrganizerAIChat />
 
       {/* Notification */}
       {notice && (

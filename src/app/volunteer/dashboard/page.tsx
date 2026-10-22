@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import VolunteerSidebar from "@/components/VolunteerSidebar";
+import VolunteerAIChat from "@/components/volunteer/VolunteerAIChat";
 import {
   Compass,
   CalendarCheck,
@@ -18,6 +19,7 @@ import {
   UserRound,
   LogOut,
   ChevronDown,
+   Bell,
 } from "lucide-react";
 
 type VolunteerEvent = {
@@ -77,37 +79,70 @@ export default function VolunteerDashboard() {
   const [search, setSearch] = useState("");
   const [currentTime, setCurrentTime] = useState<number | null>(null);
   const [showProfile, setShowProfile] = useState(false);
-
   const profileRef = useRef<HTMLDivElement>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setCurrentTime(Date.now());
   }, []);
 
-  // Click outside করলে profile dropdown বন্ধ হবে
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        profileRef.current &&
-        !profileRef.current.contains(event.target as Node)
-      ) {
-        setShowProfile(false);
-      }
+  function handleClickOutside(event: MouseEvent) {
+    const target = event.target as Node;
+
+    if (
+      profileRef.current &&
+      !profileRef.current.contains(target)
+    ) {
+      setShowProfile(false);
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
+    if (
+      notificationRef.current &&
+      !notificationRef.current.contains(target)
+    ) {
+      setShowNotifications(false);
+    }
+  }
 
-    return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
-    };
-  }, []);
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+  };
+}, []);
 
   const registeredEvents = events.filter(
     (event) => event.registered
   );
+
+
+const reminderEvents = registeredEvents
+  .map((event) => {
+    const eventDate = new Date(event.date);
+    const daysLeft =
+      currentTime === null
+        ? 0
+        : Math.ceil(
+            (eventDate.getTime() - currentTime) /
+              (1000 * 60 * 60 * 24)
+          );
+
+    return { ...event, daysLeft };
+  })
+  .filter(
+    (event) => currentTime !== null && event.daysLeft >= 0
+  )
+  .sort((a, b) => a.daysLeft - b.daysLeft);
+
+const notificationCount = reminderEvents.filter(
+  (event) => event.daysLeft <= 7
+).length;
+
 
   const upcomingEvents = events.filter((event) => {
     if (currentTime === null) return true;
@@ -238,6 +273,163 @@ export default function VolunteerDashboard() {
           background: #f4f7fb;
           border-color: #e7edf4;
         }
+
+        /* NOTIFICATION */
+.v-notification-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.v-notification-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #e0e7f0;
+  border-radius: 10px;
+  background: white;
+  color: #40516a;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.v-notification-btn:hover {
+  background: #f0fdf7;
+  border-color: #b7e7d0;
+  color: #0d9669;
+}
+
+.v-notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 20px;
+  background: #ef4444;
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.v-notification-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: -45px;
+  z-index: 60;
+  width: 330px;
+  max-width: calc(100vw - 30px);
+  overflow: hidden;
+  border: 1px solid #e6ebf2;
+  border-radius: 13px;
+  background: white;
+  box-shadow: 0 14px 35px #182b441a;
+  animation: v-dropdown-in 0.15s ease-out;
+}
+
+.v-notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.v-notification-header strong {
+  color: #24334a;
+  font-size: 13px;
+}
+
+.v-notification-header small {
+  color: #8795a8;
+  font-size: 10px;
+}
+
+
+.v-notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid #f0f3f7;
+  background: white;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.v-notification-item:last-child {
+  border-bottom: 0;
+}
+
+.v-notification-item:hover {
+  background: #f8fbf9;
+}
+
+.v-notification-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #e5f8ef;
+  color: #0d9669;
+}
+
+.v-notification-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.v-notification-info strong {
+  display: block;
+  color: #293b52;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.v-notification-info p {
+  margin: 5px 0 0;
+  color: #7c8ba0;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.v-notification-days {
+  display: inline-block;
+  margin-top: 7px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.v-notification-empty {
+  padding: 26px 18px;
+  color: #8795a8;
+  font-size: 11px;
+  text-align: center;
+  line-height: 1.8;
+}
+
+@media (max-width: 650px) {
+  .v-notification-dropdown {
+    right: -45px;
+    width: min(330px, calc(100vw - 30px));
+  }
+}
 
         .v-avatar {
           display: grid;
@@ -782,64 +974,146 @@ export default function VolunteerDashboard() {
             </span>
           </div>
 
-          <div className="v-top-right">
-            {/* SEARCH */}
-            <label className="v-search">
-              <Search size={16} />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search upcoming events..."
-                aria-label="Search upcoming events"
-              />
-            </label>
+          
+<div className="v-top-right">
+  {/* SEARCH */}
+  <label className="v-search">
+    <Search size={16} />
+    <input
+      value={search}
+      onChange={(event) => setSearch(event.target.value)}
+      placeholder="Search upcoming events..."
+      aria-label="Search upcoming events"
+    />
+  </label>
 
-            {/* PROFILE DROPDOWN */}
-            <div className="v-profile-wrap" ref={profileRef}>
-              <button
-                type="button"
-                className="v-profile"
-                onClick={() => setShowProfile((open) => !open)}
-                aria-expanded={showProfile}
-                aria-label="Open profile menu"
-              >
-                <span className="v-avatar">SA</span>
+  {/* EVENT REMINDERS */}
+  <div className="v-notification-wrap" ref={notificationRef}>
+    <button
+      type="button"
+      className="v-notification-btn"
+      aria-label="Event reminders"
+      aria-expanded={showNotifications}
+      onClick={() => {
+        setShowNotifications((open) => !open);
+        setShowProfile(false);
+      }}
+    >
+      <Bell size={19} />
 
-                <span className="v-profile-info">
-                  <strong>Sarah Ahmed</strong>
-                  <small>Volunteer</small>
-                </span>
+      {notificationCount > 0 && (
+        <span className="v-notification-badge">
+          {notificationCount}
+        </span>
+      )}
+    </button>
 
-                <ChevronDown
-                  size={15}
-                  className={showProfile ? "v-chevron-open" : ""}
-                />
-              </button>
+    {showNotifications && (
+      <div className="v-notification-dropdown">
+        <div className="v-notification-header">
+          <strong>Event Reminders</strong>
+          <small>{reminderEvents.length} upcoming</small>
+        </div>
 
-              {showProfile && (
-                <div className="v-profile-dropdown">
-                  <Link
-                    href="/volunteer/profile"
-                    className="v-dropdown-item"
-                    onClick={() => setShowProfile(false)}
-                  >
-                    <UserRound size={16} />
-                    My Profile
-                  </Link>
+        
+{reminderEvents.length > 0 ? (
+  reminderEvents.map((event) => (
+    <Link
+      href="/volunteer/events"
+      className="v-notification-item"
+      key={event.id}
+      onClick={() => setShowNotifications(false)}
+    >
+      <div className="v-notification-icon">
+        <CalendarDays size={18} />
+      </div>
 
-                  <Link
-                    href="/login"
-                    className="v-dropdown-item v-logout"
-                    onClick={() => setShowProfile(false)}
-                  >
-                    <LogOut size={16} />
-                    Log out
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
+      <div className="v-notification-info">
+        <strong>{event.title}</strong>
+
+        <p>
+          <Clock3
+            size={11}
+            style={{
+              display: "inline",
+              verticalAlign: "middle",
+              marginRight: 4,
+            }}
+          />
+          {event.date} · {event.time}
+        </p>
+
+        <span className="v-notification-days">
+          {event.daysLeft === 0
+            ? "Event is today!"
+            : event.daysLeft === 1
+            ? "1 day remaining"
+            : `${event.daysLeft} days remaining`}
+        </span>
+      </div>
+    </Link>
+  ))
+) : (
+  <div className="v-notification-empty">
+    <CalendarCheck
+      size={25}
+      style={{ marginBottom: 8 }}
+    />
+    <div>No upcoming registered events.</div>
+    <div>Register for an event to see reminders.</div>
+  </div>
+)}
+      </div>
+    )}
+  </div>
+
+  {/* PROFILE DROPDOWN */}
+  <div className="v-profile-wrap" ref={profileRef}>
+    <button
+      type="button"
+      className="v-profile"
+      onClick={() => setShowProfile((open) => !open)}
+      aria-expanded={showProfile}
+      aria-label="Open profile menu"
+    >
+      <span className="v-avatar">SA</span>
+
+      <span className="v-profile-info">
+        <strong>Sarah Ahmed</strong>
+        <small>Volunteer</small>
+      </span>
+
+      <ChevronDown
+        size={15}
+        className={showProfile ? "v-chevron-open" : ""}
+      />
+    </button>
+
+    {showProfile && (
+      <div className="v-profile-dropdown">
+        <Link
+          href="/volunteer/profile"
+          className="v-dropdown-item"
+          onClick={() => setShowProfile(false)}
+        >
+          <UserRound size={16} />
+          My Profile
+        </Link>
+
+        <Link
+          href="/login"
+          className="v-dropdown-item v-logout"
+          onClick={() => setShowProfile(false)}
+        >
+          <LogOut size={16} />
+          Log out
+        </Link>
+      </div>
+    )}
+  </div>
+</div>
+</header>
+
 
         {/* DASHBOARD CONTENT */}
         <section className="v-content">
@@ -1114,6 +1388,7 @@ export default function VolunteerDashboard() {
           </div>
         </section>
       </main>
+      <VolunteerAIChat />
     </div>
   );
 }
