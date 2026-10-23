@@ -190,7 +190,7 @@ const Footer = () => {
 
               <li>
                 <Link
-                  href="/contact"
+                  href="/#contact"
                   className="transition-colors hover:text-emerald-400"
                 >
                   Contact Us

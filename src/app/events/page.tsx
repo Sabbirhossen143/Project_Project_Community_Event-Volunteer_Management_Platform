@@ -17,6 +17,7 @@ import {
   Clock,
   Menu,
   X,
+  Share2,
 } from "lucide-react";
 
 const events = [
@@ -124,6 +125,7 @@ export default function EventsPage() {
   const [selectedCategory, setSelectedCategory] =
     useState("All Events");
   const [menuOpen, setMenuOpen] = useState(false);
+  
 
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
@@ -142,6 +144,33 @@ export default function EventsPage() {
       return matchesCategory && matchesSearch;
     });
   }, [searchTerm, selectedCategory]);
+
+  const handleShareEvent = async (event: (typeof events)[number]) => {
+  const shareUrl = `${window.location.origin}/events?eventId=${event.id}`;
+
+  const shareData = {
+    title: event.title,
+    text: `${event.title}\n${event.description}\nDate: ${event.date}\nLocation: ${event.location}`,
+    url: shareUrl,
+  };
+
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(
+        `${shareData.text}\n${shareUrl}`
+      );
+      window.alert("Event link copied successfully!");
+    } else {
+      window.prompt("Copy this event link:", shareUrl);
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name !== "AbortError") {
+      window.alert("Could not share the event. Please try again.");
+    }
+  }
+};
 
   return (
     <main className="min-h-screen bg-[#fcfdfb] text-slate-800">
@@ -528,13 +557,25 @@ export default function EventsPage() {
                       />
                     </div>
 
-                    <Link
-                      href="/register"
-                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 font-bold text-white transition hover:bg-emerald-700"
-                    >
-                      Join This Event
-                      <ArrowRight size={17} />
-                    </Link>
+                   <div className="mt-6 grid grid-cols-2 gap-3">
+  <button
+    type="button"
+    onClick={() => handleShareEvent(event)}
+    className="flex items-center justify-center gap-2 rounded-xl border border-emerald-600 px-3 py-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-50"
+  >
+    <Share2 size={16} />
+    Share Event
+  </button>
+
+  <Link
+    href={`/register?eventId=${event.id}&event=${encodeURIComponent(event.title)}`}
+    className="flex items-center justify-center gap-1 rounded-xl bg-emerald-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-emerald-700"
+  >
+    Join Event
+    <ArrowRight size={16} />
+  </Link>
+</div>
+
                   </div>
                 </article>
               );
@@ -568,6 +609,7 @@ export default function EventsPage() {
           </div>
         )}
       </section>
+
 
       {/* Call To Action */}
       <section className="mx-auto max-w-7xl px-5 pb-16 lg:px-8">

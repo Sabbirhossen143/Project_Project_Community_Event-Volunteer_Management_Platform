@@ -2,6 +2,9 @@
 
 import OrganizerSidebar from "@/components/OrganizerSidebar";
 import OrganizerAIChat from "@/components/Organizer/OrganizerAIChat";
+import OrganizerEventDetailsModal, {
+  type OrganizerEvent,
+} from "@/components/Organizer/OrganizerEventDetailsModal";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -104,6 +107,10 @@ export default function ManageEventsPage() {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  const [selectedEvent, setSelectedEvent] =
+  useState<OrganizerEvent | null>(null);
+  const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
+  const [editForm, setEditForm] = useState<EventItem | null>(null);
 
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
@@ -146,22 +153,63 @@ export default function ManageEventsPage() {
   }
 
   function editEvent(event: EventItem) {
-    const title = window.prompt("Enter event title:", event.title);
-    if (title === null || !title.trim()) return;
+  setEditingEvent(event);
+  setEditForm({ ...event });
+}
 
-    setEvents((current) =>
-      current.map((item) =>
-        item.id === event.id ? { ...item, title: title.trim() } : item
-      )
-    );
-    setNotice("Event title updated successfully.");
+function handleEditChange(
+  field: keyof EventItem,
+  value: string | number
+) {
+  setEditForm((current) =>
+    current ? { ...current, [field]: value } : current
+  );
+}
+
+function saveEditedEvent(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
+
+  if (!editForm) return;
+
+  if (
+    !editForm.title.trim() ||
+    !editForm.category.trim() ||
+    !editForm.date.trim() ||
+    !editForm.location.trim()
+  ) {
+    return;
   }
+
+  if (
+    editForm.capacity < 1 ||
+    editForm.registered < 0 ||
+    editForm.registered > editForm.capacity
+  ) {
+    setNotice("Please check the volunteer numbers and capacity.");
+    return;
+  }
+
+  setEvents((current) =>
+    current.map((event) =>
+      event.id === editForm.id
+        ? {
+            ...editForm,
+            title: editForm.title.trim(),
+            category: editForm.category.trim(),
+            location: editForm.location.trim(),
+          }
+        : event
+    )
+  );
+
+  setEditingEvent(null);
+  setEditForm(null);
+  setNotice("Event updated successfully.");
+}
 
   function viewEvent(event: EventItem) {
-    setNotice(
-      `${event.title} — ${event.date} — ${event.location} — ${event.registered}/${event.capacity} volunteers`
-    );
-  }
+  setSelectedEvent(event);
+}
 
   return (
     <div className="page-shell">
@@ -220,6 +268,226 @@ export default function ManageEventsPage() {
           height: 38px; padding: 0 12px; border: 1px solid #e0e7f0;
           border-radius: 9px; background: #fbfcfe; color: #8a98ac;
         }
+          .edit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(15, 29, 48, 0.58);
+  backdrop-filter: blur(5px);
+}
+
+.edit-modal {
+  width: 100%;
+  max-width: 600px;
+  max-height: 88dvh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 24px 80px rgba(15, 29, 48, 0.25);
+  animation: editPopupIn 0.2s ease-out;
+}
+
+@keyframes editPopupIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.edit-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 24px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.edit-modal-title {
+  margin: 0;
+  color: #17243b;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.edit-modal-subtitle {
+  margin: 6px 0 0;
+  color: #8290a3;
+  font-size: 11px;
+}
+
+.edit-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #e5eaf0;
+  border-radius: 9px;
+  background: white;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.edit-close:hover {
+  color: #dc2626;
+  background: #fff5f5;
+}
+
+.edit-form {
+  padding: 22px 24px;
+}
+
+.edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 17px;
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.edit-field.full {
+  grid-column: 1 / -1;
+}
+
+.edit-field label {
+  color: #43536a;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.edit-field input,
+.edit-field select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #dfe6ef;
+  border-radius: 9px;
+  outline: none;
+  background: #fff;
+  color: #26364c;
+  font-size: 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.edit-field input:focus,
+.edit-field select:focus {
+  border-color: #0d9669;
+  box-shadow: 0 0 0 3px rgba(13, 150, 105, 0.1);
+}
+
+.edit-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #edf1f5;
+}
+
+.edit-cancel,
+.edit-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.edit-cancel {
+  border: 1px solid #dfe6ef;
+  background: white;
+  color: #526176;
+}
+
+.edit-save {
+  border: 0;
+  background: #0d9669;
+  color: white;
+}
+
+.edit-save:hover {
+  background: #087b56;
+}
+
+@media (max-width: 600px) {
+  .edit-overlay {
+    padding: 10px;
+    align-items: center;
+  }
+
+  .edit-modal {
+    max-width: 430px;
+    max-height: 84dvh;
+    border-radius: 14px;
+  }
+
+  .edit-modal-header {
+    padding: 16px;
+  }
+
+  .edit-modal-title {
+    font-size: 17px;
+  }
+
+  .edit-form {
+    padding: 16px;
+  }
+
+  .edit-grid {
+    gap: 13px 10px;
+  }
+
+  .edit-field input,
+  .edit-field select {
+    height: 40px;
+    padding: 0 9px;
+    font-size: 11px;
+  }
+
+  .edit-modal-footer {
+    position: sticky;
+    bottom: -16px;
+    margin: 20px -16px -16px;
+    padding: 13px 16px;
+    background: white;
+  }
+
+  .edit-cancel,
+  .edit-save {
+    flex: 1;
+    padding: 0 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-field.full {
+    grid-column: auto;
+  }
+}
         .search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 12px; }
         .content { max-width: 1500px; margin: 0 auto; padding: 28px; }
         .page-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
@@ -423,9 +691,13 @@ export default function ManageEventsPage() {
                           <button className="action" title="View event" onClick={() => viewEvent(event)}>
                             <Eye size={15} />
                           </button>
-                          <button className="action" title="Edit event title" onClick={() => editEvent(event)}>
-                            <Pencil size={15} />
-                          </button>
+                          <button
+  className="action"
+  title="Edit event"
+  onClick={() => editEvent(event)}
+>
+  <Pencil size={15} />
+</button>
                           <button className="action delete" title="Delete event" onClick={() => deleteEvent(event.id)}>
                             <Trash2 size={15} />
                           </button>
@@ -446,6 +718,193 @@ export default function ManageEventsPage() {
           </section>
         </section>
       </main>
+
+      {editingEvent && editForm && (
+  <div
+    className="edit-overlay"
+    onMouseDown={(e) => {
+      if (e.target === e.currentTarget) {
+        setEditingEvent(null);
+        setEditForm(null);
+      }
+    }}
+  >
+    <section
+      className="edit-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-event-heading"
+    >
+      <div className="edit-modal-header">
+        <div>
+          <h2 className="edit-modal-title" id="edit-event-heading">
+            Edit Event
+          </h2>
+          <p className="edit-modal-subtitle">
+            Update your event information below.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="edit-close"
+          aria-label="Close edit popup"
+          onClick={() => {
+            setEditingEvent(null);
+            setEditForm(null);
+          }}
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      <form className="edit-form" onSubmit={saveEditedEvent}>
+        <div className="edit-grid">
+          <div className="edit-field full">
+            <label htmlFor="edit-title">Event Title *</label>
+            <input
+              id="edit-title"
+              type="text"
+              value={editForm.title}
+              onChange={(e) =>
+                handleEditChange("title", e.target.value)
+              }
+              placeholder="Enter event title"
+              required
+            />
+          </div>
+
+          <div className="edit-field">
+            <label htmlFor="edit-category">Category *</label>
+            <select
+              id="edit-category"
+              value={editForm.category}
+              onChange={(e) =>
+                handleEditChange("category", e.target.value)
+              }
+              required
+            >
+              <option value="Environment">Environment</option>
+              <option value="Education">Education</option>
+              <option value="Health">Health</option>
+              <option value="Community">Community</option>
+            </select>
+          </div>
+
+          <div className="edit-field">
+            <label htmlFor="edit-status">Event Status</label>
+            <select
+              id="edit-status"
+              value={editForm.status}
+              onChange={(e) =>
+                handleEditChange(
+                  "status",
+                  e.target.value as EventStatus
+                )
+              }
+            >
+              <option value="Upcoming">Upcoming</option>
+              <option value="Completed">Completed</option>
+              <option value="Draft">Draft</option>
+            </select>
+          </div>
+
+          <div className="edit-field full">
+            <label htmlFor="edit-date">Event Date *</label>
+            <input
+              id="edit-date"
+              type="text"
+              value={editForm.date}
+              onChange={(e) =>
+                handleEditChange("date", e.target.value)
+              }
+              placeholder="e.g. Nov 15, 2026"
+              required
+            />
+          </div>
+
+          <div className="edit-field full">
+            <label htmlFor="edit-location">Location *</label>
+            <input
+              id="edit-location"
+              type="text"
+              value={editForm.location}
+              onChange={(e) =>
+                handleEditChange("location", e.target.value)
+              }
+              placeholder="Enter event location"
+              required
+            />
+          </div>
+
+          <div className="edit-field">
+            <label htmlFor="edit-registered">
+              Registered Volunteers
+            </label>
+            <input
+              id="edit-registered"
+              type="number"
+              min={0}
+              max={editForm.capacity}
+              value={editForm.registered}
+              onChange={(e) =>
+                handleEditChange(
+                  "registered",
+                  Number(e.target.value)
+                )
+              }
+              required
+            />
+          </div>
+
+          <div className="edit-field">
+            <label htmlFor="edit-capacity">
+              Volunteer Capacity
+            </label>
+            <input
+              id="edit-capacity"
+              type="number"
+              min={1}
+              value={editForm.capacity}
+              onChange={(e) =>
+                handleEditChange(
+                  "capacity",
+                  Number(e.target.value)
+                )
+              }
+              required
+            />
+          </div>
+        </div>
+
+        <div className="edit-modal-footer">
+          <button
+            type="button"
+            className="edit-cancel"
+            onClick={() => {
+              setEditingEvent(null);
+              setEditForm(null);
+            }}
+          >
+            Cancel
+          </button>
+
+          <button type="submit" className="edit-save">
+            <Pencil size={14} />
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+)}
+
+      <OrganizerEventDetailsModal
+  event={selectedEvent}
+  onClose={() => setSelectedEvent(null)}
+/>
+
+<OrganizerAIChat />
 
       <OrganizerAIChat />
 

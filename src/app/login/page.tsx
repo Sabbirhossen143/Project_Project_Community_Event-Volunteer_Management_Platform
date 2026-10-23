@@ -352,14 +352,17 @@ export default function LoginPage() {
           </div>
 
           {/* Back Home */}
-          <p className="mt-6 text-center text-sm">
-            <Link
-              href="/"
-              className="font-medium text-black/55 transition hover:text-emerald-700"
-            >
-              ← Back to Home
-            </Link>
-          </p>
+          
+{/* Back Home */}
+<div className="mt-6 flex justify-center">
+  <Link
+    href="/"
+    className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-600 bg-white px-5 py-2.5 text-sm font-semibold text-emerald-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-50 hover:shadow-md hover:shadow-emerald-600/10 active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/20"
+  >
+    ← Back to Home
+  </Link>
+</div>
+
         </div>
       </section>
     </main>

@@ -16,6 +16,9 @@ import {
   Sparkles,
   Menu,
   X,
+  Mail,
+  Phone,
+  Send,
 } from "lucide-react";
 
 const events = [
@@ -426,7 +429,10 @@ export default function Home() {
       </section>
 
       {/* Highlights */}
-      <section className="scroll-reveal border-y border-slate-100 bg-white">
+      
+
+<section className="scroll-reveal border-y border-emerald-200 bg-[#f4f7f3]">
+
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-7 px-5 py-9 md:grid-cols-4 lg:px-8">
           {[
             { value: "Every", label: "Action counts" },
@@ -640,6 +646,173 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      
+{/* Contact Us */}
+
+<section
+  id="contact"
+  className="scroll-reveal scroll-mt-24 bg-[#fcfdfb] py-20 lg:py-24"
+>
+  <div className="mx-auto max-w-7xl px-5 lg:px-8">
+    <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+
+      {/* Contact Information */}
+      <div>
+        <span className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">
+          Get in touch
+        </span>
+
+        <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
+          Contact <span className="text-emerald-600">Us</span>
+        </h2>
+
+        <p className="mt-5 max-w-lg leading-7 text-slate-500">
+          Have a question or want to make a difference in your
+          community? We would love to hear from you. Reach out
+          to the UnityVol team!
+        </p>
+
+        <div className="mt-8 space-y-5">
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-700">
+              <Mail size={22} />
+            </div>
+            <div>
+              <p className="font-bold text-slate-800">Email Us</p>
+              <p className="text-sm text-slate-500">
+                Your official email address
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-700">
+              <MapPin size={22} />
+            </div>
+            <div>
+              <p className="font-bold text-slate-800">Our Location</p>
+              <p className="text-sm text-slate-500">
+                Bangladesh
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-700">
+              <Phone size={22} />
+            </div>
+            <div>
+              <p className="font-bold text-slate-800">Call Us</p>
+              <p className="text-sm text-slate-500">
+                Add your contact number
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contact Form */}
+      <div className="rounded-3xl border border-emerald-100 bg-[#f4faf5] p-6 shadow-xl shadow-emerald-900/10 transition-shadow duration-300 hover:shadow-emerald-900/15 sm:p-8">
+        <h3 className="text-xl font-extrabold text-slate-800">
+          Send us a message
+        </h3>
+
+        <p className="mt-2 text-sm text-slate-500">
+          Fill out the form and let us know how we can help.
+        </p>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+
+            const form = e.currentTarget;
+            const data = new FormData(form);
+            const name = String(data.get("name") || "");
+            const email = String(data.get("email") || "");
+            const subject = String(data.get("subject") || "");
+            const message = String(data.get("message") || "");
+
+            const mailto = `mailto:YOUR_EMAIL@example.com?subject=${encodeURIComponent(
+              subject || `UnityVol message from ${name}`
+            )}&body=${encodeURIComponent(
+              `Name: ${name}\nEmail: ${email}\n\n${message}`
+            )}`;
+
+            window.location.href = mailto;
+          }}
+          className="mt-6 space-y-5"
+        >
+          <div>
+            <label htmlFor="contact-name" className="mb-2 block text-sm font-semibold">
+              Your Name
+            </label>
+            <input
+              id="contact-name"
+              name="name"
+              type="text"
+              required
+              placeholder="Enter your name"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="contact-email" className="mb-2 block text-sm font-semibold">
+              Email Address
+            </label>
+            <input
+              id="contact-email"
+              name="email"
+              type="email"
+              required
+              placeholder="Enter your email"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="contact-subject" className="mb-2 block text-sm font-semibold">
+              Subject
+            </label>
+            <input
+              id="contact-subject"
+              name="subject"
+              type="text"
+              required
+              placeholder="What is this about?"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="contact-message" className="mb-2 block text-sm font-semibold">
+              Message
+            </label>
+            <textarea
+              id="contact-message"
+              name="message"
+              required
+              rows={4}
+              placeholder="Write your message here..."
+              className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 font-bold text-white shadow-md shadow-emerald-200 transition hover:bg-emerald-700"
+          >
+            Send Message
+            <Send size={17} />
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 
       {/* Footer */}
       <Footer />

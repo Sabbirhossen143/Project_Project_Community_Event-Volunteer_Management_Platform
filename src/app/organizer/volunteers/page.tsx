@@ -22,7 +22,7 @@ import {
   Mail,
 } from "lucide-react";
 
-type VolunteerStatus = "Confirmed" | "Pending";
+type VolunteerStatus = "Pending" | "Confirmed" | "Rejected";
 
 type Volunteer = {
   id: number;
@@ -104,6 +104,7 @@ export default function EventVolunteersPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<Volunteer | null>(null);
 
   const eventNames = Array.from(
     new Set(volunteers.map((volunteer) => volunteer.event))
@@ -134,38 +135,53 @@ export default function EventVolunteersPage() {
     (volunteer) => volunteer.status === "Pending"
   ).length;
 
-  function updateStatus(id: number) {
-    setVolunteers((current) =>
-      current.map((volunteer) =>
-        volunteer.id === id
-          ? {
-              ...volunteer,
-              status:
-                volunteer.status === "Pending"
-                  ? "Confirmed"
-                  : "Pending",
-            }
-          : volunteer
-      )
-    );
+  const rejectedCount = volunteers.filter(
+  (volunteer) => volunteer.status === "Rejected"
+).length;
 
-    setNotice("Volunteer status updated successfully.");
+ function updateStatus(
+  id: number,
+  decision: "Confirmed" | "Rejected"
+) {
+  const volunteer = volunteers.find((item) => item.id === id);
+
+  // Already decided হলে আর পরিবর্তন করা যাবে না
+  if (!volunteer || volunteer.status !== "Pending") {
+    return;
   }
+
+  setVolunteers((current) =>
+    current.map((item) =>
+      item.id === id && item.status === "Pending"
+        ? { ...item, status: decision }
+        : item
+    )
+  );
+
+  setNotice(
+    decision === "Confirmed"
+      ? "Volunteer registration confirmed successfully."
+      : "Volunteer registration rejected."
+  );
+}
 
   function removeVolunteer(id: number) {
-    const volunteer = volunteers.find((item) => item.id === id);
-    if (!volunteer) return;
+  const volunteer = volunteers.find((item) => item.id === id);
+  if (!volunteer) return;
 
-    if (!window.confirm(`Remove ${volunteer.name} from this list?`)) {
-      return;
-    }
+  setPendingDelete(volunteer);
+}
 
-    setVolunteers((current) =>
-      current.filter((item) => item.id !== id)
-    );
+function confirmDelete() {
+  if (!pendingDelete) return;
 
-    setNotice("Volunteer removed successfully.");
-  }
+  setVolunteers((current) =>
+    current.filter((item) => item.id !== pendingDelete.id)
+  );
+
+  setNotice(`${pendingDelete.name} has been removed successfully.`);
+  setPendingDelete(null);
+}
 
   return (
     <div className="page-shell">
@@ -448,36 +464,29 @@ export default function EventVolunteersPage() {
 
         .status.pending { background: #fff3dd; color: #ad7413; }
 
-        .actions {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: nowrap;
-}
+        .status.rejected {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
 
-.action {
-  box-sizing: border-box;
+  .action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-
-  height: 38px;
-  min-height: 38px;
-  min-width: 112px;
-  padding: 0 14px;
-
+  gap: 4px;
+  height: 29px;
+  min-height: 29px;
+  min-width: 0;
+  padding: 0 8px;
   border: 1px solid #e1e8f0;
-  border-radius: 8px;
-  background: #ffffff;
+  border-radius: 6px;
+  background: #fff;
   color: #52667f;
-
   font-family: inherit;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
-
   cursor: pointer;
   flex: 0 0 auto;
   appearance: none;
@@ -485,8 +494,8 @@ export default function EventVolunteersPage() {
 }
 
 .action svg {
-  width: 15px;
-  height: 15px;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
 }
 
@@ -496,14 +505,111 @@ export default function EventVolunteersPage() {
 }
 
 .action.remove {
-  min-width: 38px;
-  width: 38px;
+  width: 29px;
+  min-width: 29px;
+  height: 29px;
   padding: 0;
 }
 
 .action.remove:hover {
   border-color: #fca5a5;
   color: #dc2626;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: nowrap;
+}
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.confirm-modal {
+  width: 100%;
+  max-width: 360px;
+  padding: 24px;
+  border-radius: 14px;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.confirm-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.confirm-modal h3 {
+  margin: 0 0 10px;
+  color: #17243b;
+  font-size: 18px;
+}
+
+.confirm-modal p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.cancel-btn,
+.delete-btn {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background: #fff;
+  color: #475569;
+}
+
+.delete-btn {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+
+.cancel-btn:hover {
+  background: #f8fafc;
+}
+
+.delete-btn:hover {
+  background: #b91c1c;
+}
+
+@media (max-width: 400px) {
+  .confirm-modal {
+    padding: 20px 16px;
+  }
 }
 
         .empty { padding: 35px; text-align: center; color: #8795a8; }
@@ -646,14 +752,15 @@ export default function EventVolunteersPage() {
               </select>
 
               <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                aria-label="Filter by status"
-              >
-                <option value="All">All Statuses</option>
-                <option value="Confirmed">Confirmed</option>
-                <option value="Pending">Pending</option>
-              </select>
+  value={statusFilter}
+  onChange={(e) => setStatusFilter(e.target.value)}
+  aria-label="Filter by status"
+>
+  <option value="All">All Statuses</option>
+  <option value="Pending">Pending</option>
+  <option value="Confirmed">Confirmed</option>
+  <option value="Rejected">Rejected</option>
+</select>
             </div>
 
             <div className="table-wrap">
@@ -705,42 +812,86 @@ export default function EventVolunteersPage() {
                       </td>
 
                       <td>
-                        <span
-                          className={`status ${
-                            volunteer.status === "Pending" ? "pending" : ""
-                          }`}
-                        >
-                          {volunteer.status === "Pending" ? (
-                            <Clock size={12} />
-                          ) : (
-                            <CheckCircle2 size={12} />
-                          )}
-                          {volunteer.status}
-                        </span>
-                      </td>
+  <span
+    className={`status ${volunteer.status.toLowerCase()}`}
+  >
+    {volunteer.status === "Pending" ? (
+      <Clock size={12} />
+    ) : volunteer.status === "Confirmed" ? (
+      <CheckCircle2 size={12} />
+    ) : (
+      <X size={12} />
+    )}
+
+    {volunteer.status}
+  </span>
+</td>
 
                       <td>
-                        <div className="actions">
-                          <button
-                            className="action"
-                            onClick={() => updateStatus(volunteer.id)}
-                            title="Change volunteer status"
-                          >
-                            <CheckCircle2 size={13} />
-                            {volunteer.status === "Pending"
-                              ? "Confirm"
-                              : "Set Pending"}
-                          </button>
+  <div className="actions">
+    {volunteer.status === "Pending" ? (
+      <>
+        <button
+          className="action"
+          style={{
+            borderColor: "#a7e8ce",
+            background: "#effcf6",
+            color: "#087b56",
+          }}
+          onClick={() =>
+            updateStatus(volunteer.id, "Confirmed")
+          }
+          title="Confirm registration"
+        >
+          <CheckCircle2 size={14} />
+          Confirm
+        </button>
 
-                          <button
-                            className="action remove"
-                            onClick={() => removeVolunteer(volunteer.id)}
-                            title="Remove volunteer"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
+        <button
+          className="action"
+          style={{
+            borderColor: "#fecaca",
+            background: "#fff5f5",
+            color: "#dc2626",
+          }}
+          onClick={() =>
+            updateStatus(volunteer.id, "Rejected")
+          }
+          title="Reject registration"
+        >
+          <X size={14} />
+          Reject
+        </button>
+      </>
+    ) : (
+      <span
+        style={{
+          fontSize: 10,
+          color: "#8795a8",
+          fontWeight: 650,
+        }}
+      >
+        <CheckCircle2
+          size={13}
+          style={{
+            display: "inline",
+            verticalAlign: "middle",
+            marginRight: 4,
+          }}
+        />
+        Decision locked
+      </span>
+    )}
+
+    <button
+      className="action remove"
+      onClick={() => removeVolunteer(volunteer.id)}
+      title="Remove volunteer"
+    >
+      <Trash2 size={13} />
+    </button>
+  </div>
+</td>
                     </tr>
                   ))}
 
@@ -757,6 +908,48 @@ export default function EventVolunteersPage() {
           </section>
         </section>
       </main>
+
+      {pendingDelete && (
+  <div className="confirm-overlay">
+    <div
+      className="confirm-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-title"
+    >
+      <div className="confirm-icon">
+        <Trash2 size={22} />
+      </div>
+
+      <h3 id="delete-title">Delete Registration?</h3>
+
+      <p>
+        Are you sure you want to delete{" "}
+        <strong>{pendingDelete.name}</strong>?
+        This action cannot be undone.
+      </p>
+
+      <div className="confirm-actions">
+        <button
+          type="button"
+          className="cancel-btn"
+          onClick={() => setPendingDelete(null)}
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          className="delete-btn"
+          onClick={confirmDelete}
+        >
+          Yes, Delete
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
       <OrganizerAIChat />
     </div>
   );

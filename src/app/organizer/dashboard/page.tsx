@@ -3,8 +3,12 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import OrganizerSidebar from "@/components/OrganizerSidebar";
 import OrganizerAIChat from "@/components/Organizer/OrganizerAIChat";
+import OrganizerEventDetailsModal, {
+  type OrganizerEvent,
+} from "@/components/Organizer/OrganizerEventDetailsModal";
 import {
   LayoutDashboard,
   CalendarPlus,
@@ -162,7 +166,9 @@ export default function OrganizerDashboard() {
   const profileRef = useRef<HTMLDivElement>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [today, setToday] = useState<Date | null>(null);
-
+  const [selectedEvent, setSelectedEvent] =
+  useState<OrganizerEvent | null>(null);
+  const router = useRouter();
 
 useEffect(() => {
   function handleOutsideClick(event: MouseEvent) {
@@ -2130,11 +2136,11 @@ const notificationCount =
               </div>
 
               <button
-                className="uv-outline-btn"
-                onClick={() => handleNavigation("Manage Events")}
-              >
-                View all <ChevronRight size={13} />
-              </button>
+  className="uv-outline-btn"
+  onClick={() => router.push("/organizer/events")}
+>
+  View all <ChevronRight size={13} />
+</button>
             </div>
 
             <div className="uv-upcoming-list">
@@ -2168,16 +2174,12 @@ const notificationCount =
                     </div>
                   </div>
                   <button
-                    className="uv-view-btn"
-                    onClick={() =>
-                      setNotice(
-                        `${event.title}: ${event.registered} of ${event.capacity} slots filled.`
-                      )
-                    }
-                  >
-                    <Eye size={12} />
-                    View
-                  </button>
+  className="uv-view-btn"
+  onClick={() => setSelectedEvent(event)}
+>
+  <Eye size={12} />
+  View
+</button>
                 </div>
               ))}
             </div>
@@ -2258,16 +2260,12 @@ const notificationCount =
                           </td>
                           <td>
                             <button
-                              className="uv-view-btn"
-                              onClick={() =>
-                                setNotice(
-                                  `${event.title}: ${event.registered} registered out of ${event.capacity} slots.`
-                                )
-                              }
-                            >
-                              <Eye size={12} />
-                              View
-                            </button>
+  className="uv-view-btn"
+  onClick={() => setSelectedEvent(event)}
+>
+  <Eye size={12} />
+  View
+</button>
                           </td>
                         </tr>
                       ))
@@ -2365,6 +2363,11 @@ const notificationCount =
           </footer>
         </div>
       </main>
+
+      <OrganizerEventDetailsModal
+  event={selectedEvent}
+  onClose={() => setSelectedEvent(null)}
+/>
 
       <OrganizerAIChat />
 
