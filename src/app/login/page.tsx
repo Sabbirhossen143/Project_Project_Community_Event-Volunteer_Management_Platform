@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import {
   Eye,
   EyeOff,
@@ -127,17 +127,49 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loadingProvider, setLoadingProvider] = useState<
-    "google" | "github" | null
-  >(null);
+  "google" | "github" | "credentials" | null
+>(null);
 
-  const handleLogin = async (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
-    e.preventDefault();
+ 
 
-    // Email/password authentication must be connected separately.
-    alert("Email/password authentication is not connected yet.");
-  };
+const handleLogin = async (
+  e: React.FormEvent<HTMLFormElement>
+) => {
+  e.preventDefault();
+
+  try {
+    setLoadingProvider("credentials");
+
+    const result = await signIn("credentials", {
+      email: email.trim().toLowerCase(),
+      password,
+      redirect: false,
+    });
+
+    if (!result || result.error || !result.ok) {
+      alert("Invalid email or password. Please try again.");
+      return;
+    }
+
+    const session = await getSession();
+    const role = (
+      session?.user as { role?: string } | undefined
+    )?.role;
+
+    if (role === "Organizer") {
+      window.location.href = "/organizer/dashboard";
+    } else if (role === "Volunteer") {
+      window.location.href = "/volunteer/dashboard";
+    } else {
+      alert("User role not found. Please contact support.");
+    }
+  } catch (error) {
+    console.error("Login failed:", error);
+    alert("Something went wrong. Please try again.");
+  } finally {
+    setLoadingProvider(null);
+  }
+};
 
   const handleSocialLogin = async (provider: "google" | "github") => {
     try {
@@ -290,13 +322,16 @@ export default function LoginPage() {
             </div>
 
             {/* Sign In */}
-            <button
-              type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 font-bold text-white shadow-lg shadow-emerald-700/15 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-700 active:translate-y-0"
-            >
-              Sign In
-              <ArrowRight size={19} />
-            </button>
+            
+<button
+  type="submit"
+  disabled={loadingProvider !== null}
+  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 font-bold text-white shadow-lg shadow-emerald-700/15 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-700 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+>
+  {loadingProvider === "credentials" ? "Signing in..." : "Sign In"}
+  <ArrowRight size={19} />
+</button>
+
           </form>
 
           {/* Google and GitHub Sign In */}

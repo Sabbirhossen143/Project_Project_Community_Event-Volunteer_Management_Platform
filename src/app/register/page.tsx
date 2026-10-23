@@ -2,6 +2,8 @@
 "use client";
 
 import { useState } from "react";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Eye,
@@ -132,26 +134,61 @@ export default function RegisterPage() {
     }));
   };
 
-  const handleRegister = (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
-    e.preventDefault();
+  
+const [isLoading, setIsLoading] = useState(false);
+const router = useRouter();
 
-    if (formData.password.length < 8) {
-      alert("Password must contain at least 8 characters.");
-      return;
-    }
+const handleRegister = async (
+  e: React.FormEvent<HTMLFormElement>
+) => {
+  e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
+  if (formData.password.length < 8) {
+  toast.error("Password must contain at least 8 characters.");
+  return;
+}
 
-    // Connect your registration API here.
-    alert(
-      `Registration UI ready!\nName: ${formData.name}\nRole: ${formData.role}\nBackend is not connected yet.`
-    );
-  };
+  if (formData.password !== formData.confirmPassword) {
+  toast.error("Passwords do not match!");
+  return;
+}
+
+  setIsLoading(true);
+
+  try {
+    const response = await fetch("/api/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        password: formData.password,
+      }),
+    });
+
+    const data = await response.json();
+
+if (!response.ok) {
+  toast.error(data.message || "Registration failed.");
+  return;
+}
+
+    toast.success("Registration successful! 🎉");
+
+setTimeout(() => {
+  router.push("/login");
+}, 1800);
+
+  } catch (error) {
+    console.error("Registration error:", error);
+    toast.error("Something went wrong. Please try again.");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <main className="min-h-screen bg-white text-black lg:grid lg:grid-cols-2">
