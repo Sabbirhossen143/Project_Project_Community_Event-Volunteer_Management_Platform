@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 export type EventDetailsData = {
-  id: number;
+  id: string | number;
   title: string;
   category: string;
   date: string;

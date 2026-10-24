@@ -136,10 +136,10 @@ const toggleFavorite = (eventId: string) => {
 
   const [selectedEvent, setSelectedEvent] =
     useState<EventDetailsData | null>(null);
-  // Open a shared event automatically from the URL
-useEffect(() => {
+
+    useEffect(() => {
   const params = new URLSearchParams(window.location.search);
-  const eventId = Number(params.get("event"));
+  const eventId = params.get("event");
 
   if (!eventId) return;
 
@@ -150,7 +150,7 @@ useEffect(() => {
   if (matchedEvent) {
     setSelectedEvent(matchedEvent);
   }
-}, []);
+}, [events]);
 
   const [registerEvent, setRegisterEvent] =
     useState<EventItem | null>(null);

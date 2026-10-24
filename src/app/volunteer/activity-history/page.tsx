@@ -29,7 +29,7 @@ type Activity = {
   date: string;
   hours: number;
   location: string;
-  status: "Completed" | "Upcoming" | "Pending";
+  status: "Completed" | "Upcoming" | "Pending" | "Rejected";
   description: string;
 };
 
@@ -93,14 +93,12 @@ useEffect(() => {
 
           let activityStatus: Activity["status"] = "Pending";
 
-          if (
-            ["completed", "attended"].includes(rawStatus)
-          ) {
-            activityStatus = "Completed";
-          } else if (
-  ["confirmed", "approved", "accepted"].includes(rawStatus)
-) {
+if (["completed", "attended"].includes(rawStatus)) {
+  activityStatus = "Completed";
+} else if (["confirmed", "approved", "accepted"].includes(rawStatus)) {
   activityStatus = "Upcoming";
+} else if (["rejected", "declined", "cancelled", "canceled"].includes(rawStatus)) {
+  activityStatus = "Rejected";
 }
 
           return {

@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState } from "react";
+import { Suspense, use, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CalendarDays,
@@ -13,13 +13,90 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+type EventItem = {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  color: string;
+  textColor: string;
+};
 
-export default function EventRegistrationPage() {
-  const params = useParams<{ id: string }>();
+function EventRegistrationContent({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
   const router = useRouter();
 
-  const eventId = Number(params.id);
-  const event = events.find((item) => item.id === eventId);
+ const [event, setEvent] = useState<EventItem | null>(null);
+const [eventLoading, setEventLoading] = useState(true);
+
+useEffect(() => {
+  let cancelled = false;
+
+  async function loadEvent() {
+    try {
+      const response = await fetch("/api/events", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to load event.");
+      }
+
+      const data = await response.json();
+      const eventList = Array.isArray(data)
+        ? data
+        : data.events ?? [];
+
+      const found = eventList.find(
+        (item: Record<string, unknown>) =>
+          String(item._id ?? item.id) === String(id)
+      );
+
+      if (found && !cancelled) {
+        const category = String(found.category ?? "Community");
+
+        const colors: Record<string, [string, string]> = {
+          Environment: ["#dcfce7", "#15803d"],
+          Education: ["#dbeafe", "#1d4ed8"],
+          Healthcare: ["#f3e8ff", "#7e22ce"],
+          Community: ["#ffedd5", "#c2410c"],
+        };
+
+        const [color, textColor] =
+          colors[category] ?? colors.Community;
+
+        setEvent({
+          id: String(found._id ?? found.id),
+          title: String(found.title ?? ""),
+          category,
+          description: String(found.description ?? ""),
+          date: String(found.date ?? ""),
+          time: String(found.time ?? found.startTime ?? "Not specified"),
+          location: String(found.location ?? "Not specified"),
+          color,
+          textColor,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to load event:", error);
+    } finally {
+      if (!cancelled) setEventLoading(false);
+    }
+  }
+
+  loadEvent();
+
+  return () => {
+    cancelled = true;
+  };
+}, [id]);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -28,6 +105,14 @@ export default function EventRegistrationPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  if (eventLoading) {
+  return (
+    <main className="flex min-h-screen items-center justify-center">
+      <p>Loading event...</p>
+    </main>
+  );
+}
 
   if (!event) {
     return (
@@ -63,7 +148,7 @@ export default function EventRegistrationPage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        eventId: params.id,
+        eventId: id,
         fullName,
         email,
         phone,
@@ -310,5 +395,22 @@ export default function EventRegistrationPage() {
         </div>
       </div>
     </main>
+  );
+}
+export default function EventRegistrationPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center">
+          <p>Loading event...</p>
+        </main>
+      }
+    >
+      <EventRegistrationContent params={params} />
+    </Suspense>
   );
 }

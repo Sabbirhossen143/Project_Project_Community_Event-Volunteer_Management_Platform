@@ -56,6 +56,7 @@ export default function OrganizerEventDetailsModal({
   }, [event, onClose]);
 
   if (!event) return null;
+  const activeEvent = event;
 
   const percentage =
     event.capacity > 0
@@ -72,11 +73,11 @@ export default function OrganizerEventDetailsModal({
 
   async function shareEvent() {
     const shareUrl = new URL(window.location.href);
-    shareUrl.searchParams.set("event", String(event.id));
+    shareUrl.searchParams.set("event", String(activeEvent.id));
 
     const shareData = {
-      title: event.title,
-      text: `Check out ${event.title} — ${event.date} at ${event.location}.`,
+      title: activeEvent.title,
+      text: `Check out ${activeEvent.title} — ${activeEvent.date} at ${activeEvent.location}.`,
       url: shareUrl.toString(),
     };
 
