@@ -237,7 +237,7 @@ This project provides practical experience with:
 
 Full-Stack Web Developer
 
-- GitHub: [Add Your GitHub Profile URL](https://github.com/Sabbirhossen143)
+- GitHub: (https://github.com/Sabbirhossen143)
 - Portfolio:  https://sabbir-hoosen-portfolio.vercel.app/
 
 ## 📄 License
