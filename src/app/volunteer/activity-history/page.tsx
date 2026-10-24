@@ -897,14 +897,7 @@ const filteredActivities = activities.filter((activity) => {
             </span>
           </div>
 
-          <div className="ah-profile">
-            <div className="ah-avatar">SA</div>
-
-            <div className="ah-profile-info">
-              <strong>Sarah Ahmed</strong>
-              <small>Volunteer</small>
-            </div>
-          </div>
+          
         </header>
 
         <section className="ah-content">

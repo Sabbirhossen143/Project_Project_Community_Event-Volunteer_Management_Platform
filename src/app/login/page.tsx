@@ -173,14 +173,18 @@ const handleLogin = async (
 };
 
   const handleSocialLogin = async (provider: "google" | "github") => {
-    try {
-      setLoadingProvider(provider);
-      await signIn(provider, { callbackUrl: "/" });
-    } catch (error) {
-      console.error(`${provider} sign-in failed:`, error);
-      setLoadingProvider(null);
-    }
-  };
+  try {
+    setLoadingProvider(provider);
+
+    await signIn(provider, {
+      callbackUrl: "/",
+      redirect: true,
+    });
+  } catch (error) {
+    console.error(`${provider} sign-in failed:`, error);
+    setLoadingProvider(null);
+  }
+};
 
   return (
     <main className="min-h-screen bg-white lg:grid lg:grid-cols-2">

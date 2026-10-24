@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
+import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
 import VolunteerSidebar from "@/components/VolunteerSidebar";
 import VolunteerAIChat from "@/components/volunteer/VolunteerAIChat";
@@ -1326,6 +1327,7 @@ const notificationCount = reminderEvents.filter(
   activePage="Dashboard"
   sidebarOpen={sidebarOpen}
   onClose={() => setSidebarOpen(false)}
+  onLogout={() => signOut({ callbackUrl: "/login" })}
   userName={userName}
   userRole="Volunteer"
   avatarText={avatarText}

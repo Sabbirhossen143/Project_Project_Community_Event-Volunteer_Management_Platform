@@ -70,6 +70,7 @@ function getOrganizerReply(message: string) {
 export default function OrganizerAIChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
@@ -83,22 +84,61 @@ export default function OrganizerAIChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isOpen]);
 
-  function sendMessage(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function sendMessage(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
 
-    const message = input.trim();
-    if (!message) return;
+  const message = input.trim();
+  if (!message || isLoading) return;
 
-    const reply = getOrganizerReply(message);
+  const history = [
+    ...messages.slice(-10).map((item) => ({
+      role: item.role,
+      content: item.text,
+    })),
+    { role: "user" as const, content: message },
+  ];
+
+  setMessages((current) => [
+    ...current,
+    { role: "user", text: message },
+  ]);
+  setInput("");
+  setIsLoading(true);
+
+  try {
+    const response = await fetch("/api/ai-chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        assistantType: "organizer",
+        messages: history,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "AI response failed.");
+    }
 
     setMessages((current) => [
       ...current,
-      { role: "user", text: message },
-      { role: "assistant", text: reply },
+      { role: "assistant", text: data.reply },
     ]);
-
-    setInput("");
+  } catch (error) {
+    setMessages((current) => [
+      ...current,
+      {
+        role: "assistant",
+        text: error instanceof Error
+          ? error.message
+          : "Something went wrong.",
+      },
+    ]);
+  } finally {
+    setIsLoading(false);
   }
+}
 
   return (
     <>
@@ -163,6 +203,13 @@ export default function OrganizerAIChat() {
                 {message.text}
               </div>
             ))}
+
+            {isLoading && (
+  <div className="org-ai-message assistant">
+    Thinking...
+  </div>
+)}
+
             <div ref={messagesEndRef} />
           </div>
 
@@ -174,13 +221,17 @@ export default function OrganizerAIChat() {
               aria-label="Type your message"
             />
 
-            <button type="submit" aria-label="Send message">
+            <button
+  type="submit"
+  aria-label="Send message"
+  disabled={isLoading}
+>
               <Send size={17} />
             </button>
           </form>
 
           <p className="org-ai-disclaimer">
-            Demo mode · Connect an AI API for intelligent, context-aware replies.
+            AI API for intelligent, context-aware replies.
           </p>
         </section>
       )}

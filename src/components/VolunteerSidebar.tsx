@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
@@ -519,13 +520,22 @@ const displayImage =
           </div>
 
           <button
-            type="button"
-            className="uv-logout"
-            onClick={onLogout}
-          >
-            <LogOut size={17} />
-            <span>Log Out</span>
-          </button>
+  type="button"
+  className="uv-logout"
+  onClick={async () => {
+    try {
+      await signOut({
+        callbackUrl: "/login",
+        redirect: true,
+      });
+    } catch (error) {
+      console.error("Sidebar logout failed:", error);
+    }
+  }}
+>
+  <LogOut size={17} />
+  <span>Log Out</span>
+</button>
         </div>
       </aside>
     </>
