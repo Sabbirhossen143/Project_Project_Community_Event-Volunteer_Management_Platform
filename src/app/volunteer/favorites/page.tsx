@@ -18,7 +18,7 @@ import {
 import Link from "next/link";
 
 type EventItem = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   date: string;
@@ -29,106 +29,63 @@ type EventItem = {
   textColor: string;
 };
 
-const events: EventItem[] = [
-  {
-    id: 1,
-    title: "Tree Plantation Drive",
-    category: "Environment",
-    date: "Nov 15, 2026",
-    time: "9:00 AM",
-    location: "Dhaka University",
-    description:
-      "Help make our communities greener by planting trees and promoting environmental awareness.",
-    color: "#dcfce7",
-    textColor: "#15803d",
-  },
-  {
-    id: 2,
-    title: "Digital Literacy Workshop",
-    category: "Education",
-    date: "Nov 22, 2026",
-    time: "10:00 AM",
-    location: "Dhanmondi, Dhaka",
-    description:
-      "Help people develop essential digital skills and become more confident with technology.",
-    color: "#dbeafe",
-    textColor: "#1d4ed8",
-  },
-  {
-    id: 3,
-    title: "Community Health Camp",
-    category: "Healthcare",
-    date: "Nov 30, 2026",
-    time: "8:30 AM",
-    location: "Mirpur, Dhaka",
-    description:
-      "Support a community health initiative by helping organize activities and assist visitors.",
-    color: "#f3e8ff",
-    textColor: "#7e22ce",
-  },
-  {
-    id: 4,
-    title: "Community Food Distribution",
-    category: "Community",
-    date: "Dec 5, 2026",
-    time: "8:00 AM",
-    location: "Uttara, Dhaka",
-    description:
-      "Join volunteers in organizing and distributing food packages to local families.",
-    color: "#ffedd5",
-    textColor: "#c2410c",
-  },
-  {
-    id: 5,
-    title: "Winter Clothes Collection",
-    category: "Community",
-    date: "Dec 10, 2026",
-    time: "10:00 AM",
-    location: "Mohammadpur, Dhaka",
-    description:
-      "Collect, sort and prepare warm clothing for people who need support during winter.",
-    color: "#fce7f3",
-    textColor: "#be185d",
-  },
-  {
-    id: 6,
-    title: "Children's Learning Day",
-    category: "Education",
-    date: "Dec 15, 2026",
-    time: "9:30 AM",
-    location: "Uttara, Dhaka",
-    description:
-      "Spend a meaningful day helping children learn through educational games and activities.",
-    color: "#fef3c7",
-    textColor: "#a16207",
-  },
-];
-
 export default function FavoritesPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+const [sidebarOpen, setSidebarOpen] = useState(false);
+const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+const [events, setEvents] = useState<EventItem[]>([]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("volunteerFavorites");
+useEffect(() => {
+  const saved = localStorage.getItem("volunteerFavorites");
 
-    if (saved) {
-      try {
-        setFavoriteIds(JSON.parse(saved));
-      } catch {
-        setFavoriteIds([]);
-      }
+  if (saved) {
+    try {
+      setFavoriteIds(JSON.parse(saved).map(String));
+    } catch {
+      setFavoriteIds([]);
     }
-  }, []);
+  }
 
-  const removeFavorite = (eventId: number) => {
-    const updated = favoriteIds.filter((id) => id !== eventId);
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch("/api/events");
+      if (!response.ok) throw new Error("Failed to load events");
 
-    setFavoriteIds(updated);
+      const data = await response.json();
+      const eventList = Array.isArray(data) ? data : data.events ?? [];
+
+      setEvents(
+        eventList.map((event: any) => ({
+          id: String(event._id ?? event.id),
+          title: event.title,
+          category: event.category ?? "Community",
+          date: event.date ?? "",
+          time: event.time ?? event.startTime ?? "",
+          location: event.location ?? "",
+          description: event.description ?? "",
+          color: "#dcfce7",
+          textColor: "#15803d",
+        }))
+      );
+    } catch (error) {
+      console.error("Failed to load favorite events:", error);
+    }
+  };
+
+  fetchEvents();
+}, []);
+
+  const removeFavorite = (eventId: string) => {
+  setFavoriteIds((previous) => {
+    const updated = previous.filter((id) => id !== eventId);
+
     localStorage.setItem(
       "volunteerFavorites",
       JSON.stringify(updated)
     );
-  };
+
+    return updated;
+  });
+};
 
   const favoriteEvents = events.filter((event) =>
     favoriteIds.includes(event.id)

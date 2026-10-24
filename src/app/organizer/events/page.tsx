@@ -5,7 +5,7 @@ import OrganizerAIChat from "@/components/Organizer/OrganizerAIChat";
 import OrganizerEventDetailsModal, {
   type OrganizerEvent,
 } from "@/components/Organizer/OrganizerEventDetailsModal";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -29,68 +29,17 @@ import {
 type EventStatus = "Upcoming" | "Completed" | "Draft";
 
 type EventItem = {
-  id: number;
+  id: string | number;
   title: string;
   category: string;
   date: string;
+  startTime: string;
+  endTime: string;
   location: string;
   registered: number;
   capacity: number;
   status: EventStatus;
 };
-
-const initialEvents: EventItem[] = [
-  {
-    id: 1,
-    title: "Tree Plantation Drive",
-    category: "Environment",
-    date: "Nov 15, 2026",
-    location: "Riverside Park, Dhaka",
-    registered: 12,
-    capacity: 20,
-    status: "Upcoming",
-  },
-  {
-    id: 2,
-    title: "Digital Literacy Workshop",
-    category: "Education",
-    date: "Nov 22, 2026",
-    location: "Community Center, Dhaka",
-    registered: 8,
-    capacity: 15,
-    status: "Upcoming",
-  },
-  {
-    id: 3,
-    title: "Free Health Camp",
-    category: "Health",
-    date: "Nov 30, 2026",
-    location: "City Hospital, Dhaka",
-    registered: 5,
-    capacity: 20,
-    status: "Upcoming",
-  },
-  {
-    id: 4,
-    title: "Cloth Donation Drive",
-    category: "Community",
-    date: "Dec 05, 2026",
-    location: "Mirpur Community Hall",
-    registered: 18,
-    capacity: 25,
-    status: "Upcoming",
-  },
-  {
-    id: 5,
-    title: "Community Clean-up",
-    category: "Environment",
-    date: "Oct 10, 2026",
-    location: "Hatirjheel, Dhaka",
-    registered: 24,
-    capacity: 25,
-    status: "Completed",
-  },
-];
 
 const navItems = [
   { label: "Dashboard", href: "/organizer/dashboard", icon: LayoutDashboard },
@@ -101,16 +50,83 @@ const navItems = [
 ];
 
 export default function ManageEventsPage() {
-  const [events, setEvents] = useState<EventItem[]>(initialEvents);
+  const [events, setEvents] = useState<EventItem[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<EventItem | null>(null);
   const [selectedEvent, setSelectedEvent] =
   useState<OrganizerEvent | null>(null);
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
   const [editForm, setEditForm] = useState<EventItem | null>(null);
+
+  
+useEffect(() => {
+  if (!notice) return;
+
+  const timer = window.setTimeout(() => {
+    setNotice("");
+  }, 4000);
+
+  return () => window.clearTimeout(timer);
+}, [notice]);
+
+
+  useEffect(() => {
+  async function loadEvents() {
+    try {
+      const response = await fetch("/api/events", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to load events");
+      }
+
+      const loadedEvents: EventItem[] = data.events.map(
+        (event: {
+          _id: string;
+          title: string;
+          category: string;
+          date: string;
+          startTime?: string;
+          endTime?: string;
+          location: string;
+          capacity: number;
+          status: string;
+          registered?: number;
+        }) => ({
+          id: event._id,
+          title: event.title,
+          category: event.category,
+          date: event.date,
+          startTime: event.startTime ?? "",
+          endTime: event.endTime ?? "",
+          location: event.location,
+          capacity: event.capacity,
+          registered: event.registered ?? 0,
+          status:
+            event.status === "Draft"
+              ? "Draft"
+              : event.status === "Completed"
+                ? "Completed"
+                : "Upcoming",
+        })
+      );
+
+      setEvents(loadedEvents);
+    } catch (error) {
+      console.error("Load events error:", error);
+      setNotice("Failed to load events. Please refresh the page.");
+    }
+  }
+
+  loadEvents();
+}, []);
 
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
@@ -142,15 +158,44 @@ export default function ManageEventsPage() {
     (event) => event.status === "Completed"
   ).length;
 
-  function deleteEvent(id: number) {
-    const event = events.find((item) => item.id === id);
-    if (!event) return;
+  
+function deleteEvent(id: string | number) {
+  const event = events.find((item) => item.id === id);
+  if (!event) return;
 
-    if (!window.confirm(`Delete "${event.title}"?`)) return;
+  setDeleteTarget(event);
+}
 
-    setEvents((current) => current.filter((item) => item.id !== id));
+
+async function confirmDeleteEvent(id: string | number) {
+  try {
+    const response = await fetch(`/api/events/${id}`, {
+      method: "DELETE",
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Failed to delete event.");
+    }
+
+    setEvents((current) =>
+      current.filter((item) => item.id !== id)
+    );
+
     setNotice("Event deleted successfully.");
+  } catch (error) {
+    console.error("Delete event error:", error);
+
+    setNotice(
+      error instanceof Error
+        ? error.message
+        : "Failed to delete event."
+    );
   }
+}
+
+
 
   function editEvent(event: EventItem) {
   setEditingEvent(event);
@@ -166,7 +211,10 @@ function handleEditChange(
   );
 }
 
-function saveEditedEvent(e: React.FormEvent<HTMLFormElement>) {
+
+async function saveEditedEvent(
+  e: React.FormEvent<HTMLFormElement>
+) {
   e.preventDefault();
 
   if (!editForm) return;
@@ -177,6 +225,7 @@ function saveEditedEvent(e: React.FormEvent<HTMLFormElement>) {
     !editForm.date.trim() ||
     !editForm.location.trim()
   ) {
+    setNotice("Please fill in all required fields.");
     return;
   }
 
@@ -189,22 +238,57 @@ function saveEditedEvent(e: React.FormEvent<HTMLFormElement>) {
     return;
   }
 
-  setEvents((current) =>
-    current.map((event) =>
-      event.id === editForm.id
-        ? {
-            ...editForm,
-            title: editForm.title.trim(),
-            category: editForm.category.trim(),
-            location: editForm.location.trim(),
-          }
-        : event
-    )
-  );
+  try {
+    const response = await fetch(
+      `/api/events/${editForm.id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: editForm.title.trim(),
+          category: editForm.category,
+          date: editForm.date.trim(),
+          startTime: editForm.startTime ?? "",
+          endTime: editForm.endTime ?? "",
+          location: editForm.location.trim(),
+          capacity: Number(editForm.capacity),
+          status:
+            editForm.status === "Draft"
+              ? "Draft"
+              : editForm.status === "Completed"
+                ? "Completed"
+                : "Published",
+        }),
+      }
+    );
 
-  setEditingEvent(null);
-  setEditForm(null);
-  setNotice("Event updated successfully.");
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Failed to update event.");
+    }
+
+    setEvents((current) =>
+      current.map((event) =>
+        event.id === editForm.id
+          ? { ...editForm }
+          : event
+      )
+    );
+
+    setEditingEvent(null);
+    setEditForm(null);
+    setNotice("Event updated successfully.");
+  } catch (error) {
+    console.error("Update event error:", error);
+    setNotice(
+      error instanceof Error
+        ? error.message
+        : "Failed to update event."
+    );
+  }
 }
 
   function viewEvent(event: EventItem) {
@@ -536,9 +620,33 @@ function saveEditedEvent(e: React.FormEvent<HTMLFormElement>) {
         .action.delete:hover { border-color: #fca5a5; color: #dc2626; }
         .empty { padding: 35px; text-align: center; color: #8795a8; }
         .notice {
-          margin-bottom: 16px; padding: 12px 14px; border: 1px solid #b9ead5;
-          border-radius: 9px; background: #effcf6; color: #087b56; font-size: 12px;
-        }
+  position: fixed;
+  top: 82px;
+  right: 24px;
+  z-index: 200;
+  width: min(360px, calc(100vw - 32px));
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid #b9ead5;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #087b56;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 10px 35px rgba(15, 29, 48, 0.14);
+  animation: toastIn 0.25s ease-out;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
         .mobile-menu { display: none; }
         @media (max-width: 900px) {
           .sidebar { transform: translateX(-100%); transition: transform .2s; }
@@ -823,6 +931,32 @@ function saveEditedEvent(e: React.FormEvent<HTMLFormElement>) {
             />
           </div>
 
+          <div className="edit-field">
+  <label htmlFor="edit-start-time">Start Time *</label>
+  <input
+    id="edit-start-time"
+    type="time"
+    value={editForm.startTime ?? ""}
+    onChange={(e) =>
+      handleEditChange("startTime", e.target.value)
+    }
+    required
+  />
+</div>
+
+<div className="edit-field">
+  <label htmlFor="edit-end-time">End Time *</label>
+  <input
+    id="edit-end-time"
+    type="time"
+    value={editForm.endTime ?? ""}
+    onChange={(e) =>
+      handleEditChange("endTime", e.target.value)
+    }
+    required
+  />
+</div>
+
           <div className="edit-field full">
             <label htmlFor="edit-location">Location *</label>
             <input
@@ -899,12 +1033,70 @@ function saveEditedEvent(e: React.FormEvent<HTMLFormElement>) {
   </div>
 )}
 
+
+{deleteTarget && (
+  <div className="edit-overlay">
+    <section className="edit-modal" style={{ maxWidth: 420, padding: 24 }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{
+          width: 56,
+          height: 56,
+          margin: "0 auto 16px",
+          borderRadius: "50%",
+          background: "#fff1f2",
+          color: "#dc2626",
+          display: "grid",
+          placeItems: "center"
+        }}>
+          <Trash2 size={26} />
+        </div>
+
+        <h2 style={{ margin: "0 0 10px", color: "#17243b" }}>
+          Delete Event?
+        </h2>
+
+        <p style={{ color: "#64748b", fontSize: 14, lineHeight: 1.6 }}>
+          Are you sure you want to delete
+          <strong> "{deleteTarget.title}"</strong>?
+          This action cannot be undone.
+        </p>
+
+        <div style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: 10,
+          marginTop: 24
+        }}>
+          <button
+            className="edit-cancel"
+            onClick={() => setDeleteTarget(null)}
+          >
+            Cancel
+          </button>
+
+          <button
+            className="edit-save"
+            style={{ background: "#dc2626" }}
+            onClick={async () => {
+              const id = deleteTarget.id;
+              setDeleteTarget(null);
+              await confirmDeleteEvent(id);
+            }}
+          >
+            <Trash2 size={14} />
+            Yes, Delete
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+)}
+
+
       <OrganizerEventDetailsModal
   event={selectedEvent}
   onClose={() => setSelectedEvent(null)}
 />
-
-<OrganizerAIChat />
 
       <OrganizerAIChat />
 

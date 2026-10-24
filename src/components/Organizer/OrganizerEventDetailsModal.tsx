@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 export type OrganizerEvent = {
-  id: number;
+  id: string | number;
   title: string;
   category: string;
   date: string;

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   CalendarPlus,
@@ -28,6 +30,7 @@ type OrganizerSidebarProps = {
   userName?: string;
   userRole?: string;
   avatarText?: string;
+  profileImage?: string | null;
 };
 
 const navItems = [
@@ -71,8 +74,68 @@ export default function OrganizerSidebar({
   userName = "Sarah Ahmed",
   userRole = "Organizer",
   avatarText = "SA",
+  profileImage,
 }: OrganizerSidebarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+
+  
+const [loadedProfile, setLoadedProfile] = useState<{
+  name?: string;
+  profileImage?: string | null;
+}>({});
+
+useEffect(() => {
+  let cancelled = false;
+
+  async function loadProfile() {
+    try {
+      const response = await fetch("/api/organizer/profile", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      if (!cancelled) {
+        setLoadedProfile({
+          name: data.profile?.name || "",
+          profileImage: data.profile?.profileImage || null,
+        });
+      }
+    } catch (error) {
+      console.error("Sidebar profile load error:", error);
+    }
+  }
+
+  loadProfile();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
+
+
+const displayName =
+  loadedProfile.name?.trim() ||
+  session?.user?.name ||
+  userName;
+
+const displayImage =
+  profileImage ||
+  loadedProfile.profileImage ||
+  session?.user?.image ||
+  "";
+
+const displayAvatar =
+  displayName
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <>
@@ -101,6 +164,12 @@ export default function OrganizerSidebar({
         .uv-sidebar-card h3 { margin:0 0 6px; color:white; font-size:12px; }
         .uv-sidebar-card p { margin:0; color:#a7b8cb; font-size:10px; line-height:1.6; }
         .uv-side-bottom { padding:16px 14px 21px; border-top:1px solid #ffffff12; }
+        .uv-avatar-image {
+        overflow: hidden;
+  display: block;
+  object-fit: cover;
+  overflow: hidden;
+}
         .uv-user {
   display: flex;
   align-items: center;
@@ -185,12 +254,25 @@ export default function OrganizerSidebar({
       onClick={onClose}
       aria-label="Open profile page"
     >
-      <div className="uv-avatar">{avatarText}</div>
+      
+{displayImage ? (
+  <img
+    src={displayImage}
+    alt={`${displayName}'s profile`}
+    className="uv-avatar uv-avatar-image"
+    onError={(e) => {
+      e.currentTarget.style.display = "none";
+    }}
+  />
+) : (
+  <div className="uv-avatar">{displayAvatar}</div>
+)}
 
-      <div>
-        <div className="uv-user-name">{userName}</div>
-        <div className="uv-user-role">{userRole}</div>
-      </div>
+<div>
+  <div className="uv-user-name">{displayName}</div>
+  <div className="uv-user-role">{userRole}</div>
+</div>
+
     </Link>
   </div>
 

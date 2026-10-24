@@ -2,7 +2,7 @@
 
 import OrganizerSidebar from "@/components/OrganizerSidebar";
 import OrganizerAIChat from "@/components/Organizer/OrganizerAIChat";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   Users,
@@ -16,70 +16,35 @@ import {
   Download,
 } from "lucide-react";
 
-const monthlyData = [
-  { month: "May", volunteers: 35, events: 8 },
-  { month: "Jun", volunteers: 48, events: 12 },
-  { month: "Jul", volunteers: 42, events: 10 },
-  { month: "Aug", volunteers: 65, events: 15 },
-  { month: "Sep", volunteers: 58, events: 13 },
-  { month: "Oct", volunteers: 82, events: 19 },
-  { month: "Nov", volunteers: 72, events: 17 },
-  { month: "Dec", volunteers: 96, events: 23 },
-];
+type MonthlyItem = {
+  month: string;
+  volunteers: number;
+  events: number;
+};
 
-const categoryData = [
-  { name: "Environment", count: 35, color: "#10b981" },
-  { name: "Education", count: 25, color: "#3b82f6" },
-  { name: "Community", count: 22, color: "#f59e0b" },
-  { name: "Healthcare", count: 18, color: "#a78bfa" },
-];
+type CategoryItem = {
+  name: string;
+  count: number;
+  color: string;
+};
 
-const eventPerformance = [
-  {
-    id: 1,
-    name: "Community Clean-up",
-    category: "Environment",
-    date: "Oct 25, 2026",
-    volunteers: 48,
-    capacity: 60,
-    status: "Upcoming",
-  },
-  {
-    id: 2,
-    name: "Tree Plantation Drive",
-    category: "Environment",
-    date: "Nov 15, 2026",
-    volunteers: 72,
-    capacity: 80,
-    status: "Upcoming",
-  },
-  {
-    id: 3,
-    name: "Cloth Donation Drive",
-    category: "Community",
-    date: "Dec 05, 2026",
-    volunteers: 35,
-    capacity: 50,
-    status: "Upcoming",
-  },
-  {
-    id: 4,
-    name: "Free Education Workshop",
-    category: "Education",
-    date: "Oct 10, 2026",
-    volunteers: 56,
-    capacity: 60,
-    status: "Completed",
-  },
-  {
-    id: 5,
-    name: "Health Awareness Camp",
-    category: "Healthcare",
-    date: "Sep 20, 2026",
-    volunteers: 42,
-    capacity: 50,
-    status: "Completed",
-  },
+type EventItem = {
+  id: string;
+  name: string;
+  category: string;
+  date: string;
+  volunteers: number;
+  capacity: number;
+  status: string;
+};
+
+const CATEGORY_COLORS = [
+  "#10b981",
+  "#3b82f6",
+  "#f59e0b",
+  "#a78bfa",
+  "#ef4444",
+  "#06b6d4",
 ];
 
 export default function AnalyticsPage() {
@@ -87,18 +52,72 @@ export default function AnalyticsPage() {
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState("8 months");
 
-  const totalVolunteers = 428;
-  const totalEvents = 24;
-  const confirmedVolunteers = 356;
-  const pendingVolunteers = 72;
+  const [monthlyData, setMonthlyData] = useState<MonthlyItem[]>([]);
+  const [categoryData, setCategoryData] = useState<CategoryItem[]>([]);
+  const [eventPerformance, setEventPerformance] = useState<EventItem[]>([]);
+
+  const [totalVolunteers, setTotalVolunteers] = useState(0);
+  const [totalEvents, setTotalEvents] = useState(0);
+  const [confirmedVolunteers, setConfirmedVolunteers] = useState(0);
+  const [pendingVolunteers, setPendingVolunteers] = useState(0);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch("/api/organizer/analytics");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Analytics data load করা যায়নি।"
+          );
+        }
+
+        setMonthlyData(data.monthlyData || []);
+
+        setCategoryData(
+          (data.categoryData || []).map(
+            (item: { name: string; count: number }, index: number) => ({
+              ...item,
+              color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+            })
+          )
+        );
+
+        setEventPerformance(data.eventPerformance || []);
+
+        setTotalEvents(data.stats?.totalEvents || 0);
+        setTotalVolunteers(data.stats?.totalVolunteers || 0);
+        setConfirmedVolunteers(data.stats?.confirmedVolunteers || 0);
+        setPendingVolunteers(data.stats?.pendingVolunteers || 0);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Analytics data load করতে সমস্যা হয়েছে।"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, []);
 
   const filteredEvents = useMemo(() => {
     return eventPerformance.filter((event) =>
       event.name.toLowerCase().includes(search.toLowerCase())
     );
-  }, [search]);
+  }, [eventPerformance, search]);
 
   const maxVolunteers = Math.max(
+    1,
     ...monthlyData.map((item) => item.volunteers)
   );
 
@@ -184,12 +203,56 @@ export default function AnalyticsPage() {
         }
 
         .topbar {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 16px;
-          margin-bottom: 22px;
-        }
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: 16px;
+  width: 100%;
+  min-height: 120px;
+  height: auto;
+  margin-bottom: 22px;
+  padding: 25px 24px;
+  overflow: hidden;
+  border: 1px solid #dcefe7;
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at 90% 10%,
+      rgba(16, 185, 129, 0.16),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 65% 100%,
+      rgba(59, 130, 246, 0.08),
+      transparent 35%
+    ),
+    linear-gradient(120deg, #ffffff 0%, #f0faf5 100%);
+  box-shadow: 0 8px 24px rgba(18, 52, 38, 0.06);
+}
+.topbar > * {
+  position: relative;
+  z-index: 1;
+}
+
+.topbar::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: -55px;
+  right: 125px;
+  width: 160px;
+  height: 160px;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 20px rgba(16, 185, 129, 0.035),
+    0 0 0 40px rgba(16, 185, 129, 0.025);
+  pointer-events: none;
+}
 
         .breadcrumb {
           margin-bottom: 7px;
@@ -570,6 +633,14 @@ export default function AnalyticsPage() {
           background: white;
           color: #8a9aae;
         }
+          .search-box {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-box:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
 
         .search-box input {
           width: 100%;
@@ -1125,6 +1196,13 @@ export default function AnalyticsPage() {
       </main>
 
       <OrganizerAIChat />
+      {loading && (
+  <p style={{ padding: 20 }}>Analytics data loading...</p>
+)}
+
+{error && (
+  <p style={{ padding: 20, color: "red" }}>{error}</p>
+)}
 
     </div>
   );

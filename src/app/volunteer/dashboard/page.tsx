@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 import VolunteerSidebar from "@/components/VolunteerSidebar";
 import VolunteerAIChat from "@/components/volunteer/VolunteerAIChat";
 import {
@@ -22,8 +23,9 @@ import {
    Bell,
 } from "lucide-react";
 
+
 type VolunteerEvent = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   date: string;
@@ -35,45 +37,6 @@ type VolunteerEvent = {
   textColor: string;
 };
 
-const events: VolunteerEvent[] = [
-  {
-    id: 1,
-    title: "Tree Plantation Drive",
-    category: "Environment",
-    date: "Nov 15, 2026",
-    time: "9:00 AM",
-    location: "Dhaka University",
-    registered: true,
-    status: "Confirmed",
-    color: "#dcfce7",
-    textColor: "#15803d",
-  },
-  {
-    id: 2,
-    title: "Digital Literacy Workshop",
-    category: "Education",
-    date: "Nov 22, 2026",
-    time: "10:00 AM",
-    location: "Dhanmondi, Dhaka",
-    registered: true,
-    status: "Pending",
-    color: "#dbeafe",
-    textColor: "#1d4ed8",
-  },
-  {
-    id: 3,
-    title: "Community Health Camp",
-    category: "Healthcare",
-    date: "Nov 30, 2026",
-    time: "8:30 AM",
-    location: "Mirpur, Dhaka",
-    registered: false,
-    status: "",
-    color: "#f3e8ff",
-    textColor: "#7e22ce",
-  },
-];
-
 export default function VolunteerDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -82,10 +45,204 @@ export default function VolunteerDashboard() {
   const profileRef = useRef<HTMLDivElement>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const [welcomeToast, setWelcomeToast] = useState(false);
+  const { data: session } = useSession();
+  const [profileName, setProfileName] = useState("");
+const [profileImage, setProfileImage] = useState("");
+  const [selectedEvent, setSelectedEvent] =
+  useState<VolunteerEvent | null>(null);
+  
+const [events, setEvents] = useState<VolunteerEvent[]>([]);
+const [registeredEvents, setRegisteredEvents] =
+  useState<VolunteerEvent[]>([]);
+const [eventsLoading, setEventsLoading] = useState(true);
+const [eventsError, setEventsError] = useState("");
+
+
+const userName = profileName || session?.user?.name || "Volunteer";
+const avatarText = userName
+  .split(" ")
+  .filter(Boolean)
+  .map((part) => part[0])
+  .join("")
+  .slice(0, 2)
+  .toUpperCase();
 
   useEffect(() => {
     setCurrentTime(Date.now());
   }, []);
+
+  useEffect(() => {
+  if (!session) return;
+
+  let cancelled = false;
+
+  async function loadVolunteerProfile() {
+    try {
+      const response = await fetch("/api/volunteer/profile", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) return;
+
+      const result = await response.json();
+
+      if (cancelled) return;
+
+      setProfileName(result.profile?.name || "");
+      setProfileImage(result.profile?.profileImage || "");
+    } catch (error) {
+      console.error("Dashboard profile load error:", error);
+    }
+  }
+
+  loadVolunteerProfile();
+
+  return () => {
+    cancelled = true;
+  };
+}, [session]);
+  
+useEffect(() => {
+  if (!session) return;
+
+  let cancelled = false;
+
+  async function loadDashboard() {
+    try {
+      setEventsLoading(true);
+      setEventsError("");
+
+      const [eventsResponse, registrationsResponse] =
+        await Promise.all([
+          fetch("/api/events", { cache: "no-store" }),
+          fetch("/api/my-registrations", { cache: "no-store" }),
+        ]);
+
+      const [eventsData, registrationsData] = await Promise.all([
+        eventsResponse.json(),
+        registrationsResponse.json(),
+      ]);
+
+      if (!eventsResponse.ok) {
+        throw new Error("Failed to load events.");
+      }
+
+      if (!registrationsResponse.ok) {
+        throw new Error(
+          registrationsData.message ||
+            "Failed to load your registrations."
+        );
+      }
+
+      const allEvents = Array.isArray(eventsData)
+        ? eventsData
+        : eventsData.events ?? [];
+
+      const registrations = Array.isArray(registrationsData)
+        ? registrationsData
+        : registrationsData.registrations ?? [];
+
+      const myRegistrations: VolunteerEvent[] = registrations.map(
+        (registration: any) => {
+          const event = registration.event ?? registration.eventInfo ?? registration;
+
+          return {
+            id: String(event._id ?? event.id ?? registration.eventId ?? registration._id),
+            title: event.title ?? "Untitled Event",
+            category: event.category ?? "Community",
+            date: event.date
+              ? new Date(event.date).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "2-digit",
+                  year: "numeric",
+                })
+              : "Date not specified",
+            time: event.time ?? "Time not specified",
+            location: event.location ?? "Location not specified",
+            registered: true,
+            status: registration.status ?? "Pending",
+            color: "#dcfce7",
+            textColor: "#15803d",
+          };
+        }
+      );
+
+      const registeredIds = new Set(
+        myRegistrations.map((event) => event.id)
+      );
+
+      const formattedEvents: VolunteerEvent[] = allEvents.map(
+        (event: any) => {
+          const id = String(event._id ?? event.id);
+          const registration = myRegistrations.find(
+            (item) => item.id === id
+          );
+
+          return {
+            id,
+            title: event.title ?? "Untitled Event",
+            category: event.category ?? "Community",
+            date: event.date
+              ? new Date(event.date).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "2-digit",
+                  year: "numeric",
+                })
+              : "Date not specified",
+            time: event.time ?? "Time not specified",
+            location: event.location ?? "Location not specified",
+            registered: registeredIds.has(id),
+            status: registration?.status ?? "",
+            color: "#dcfce7",
+            textColor: "#15803d",
+          };
+        }
+      );
+
+      if (!cancelled) {
+        setRegisteredEvents(myRegistrations);
+        setEvents(formattedEvents);
+      }
+    } catch (error) {
+      if (!cancelled) {
+        setEventsError(
+          error instanceof Error
+            ? error.message
+            : "Something went wrong."
+        );
+      }
+    } finally {
+      if (!cancelled) setEventsLoading(false);
+    }
+  }
+
+  loadDashboard();
+
+  return () => {
+    cancelled = true;
+  };
+}, [session]);
+
+
+ useEffect(() => {
+  if (!session?.user) return;
+
+  if (sessionStorage.getItem("showWelcomeToast") === "true") {
+    sessionStorage.removeItem("showWelcomeToast");
+    setWelcomeToast(true);
+  }
+}, [session]);
+
+useEffect(() => {
+  if (!welcomeToast) return;
+
+  const timer = setTimeout(() => {
+    setWelcomeToast(false);
+  }, 4000);
+
+  return () => clearTimeout(timer);
+}, [welcomeToast]);
 
   useEffect(() => {
   function handleClickOutside(event: MouseEvent) {
@@ -115,10 +272,6 @@ export default function VolunteerDashboard() {
     );
   };
 }, []);
-
-  const registeredEvents = events.filter(
-    (event) => event.registered
-  );
 
 
 const reminderEvents = registeredEvents
@@ -696,6 +849,77 @@ const notificationCount = reminderEvents.filter(
           color: #087b56;
         }
 
+        /* Welcome Toast */
+.uv-toast {
+  position: fixed;
+  z-index: 9999;
+  top: 82px;
+  right: 25px;
+
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  max-width: calc(100vw - 30px);
+  padding: 13px 17px;
+
+  border: 1px solid #b9ead5;
+  border-radius: 10px;
+
+  background: #effcf6;
+  color: #087b56;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  box-shadow: 0 12px 35px #1d34421c;
+  animation: toastSlideIn 0.25s ease-out;
+}
+
+/* Close Button */
+.uv-toast button {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+
+  padding: 2px;
+  border: 0;
+  border-radius: 4px;
+
+  background: transparent;
+  color: inherit;
+
+  cursor: pointer;
+}
+
+.uv-toast button:hover {
+  background: #d9f5e8;
+}
+
+/* Toast Animation */
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 650px) {
+  .uv-toast {
+    top: 70px;
+    right: 12px;
+    max-width: calc(100vw - 24px);
+    padding: 11px 13px;
+    font-size: 12px;
+  }
+}
+
         /* EVENTS */
         .v-event-list {
           display: grid;
@@ -945,18 +1169,184 @@ const notificationCount = reminderEvents.filter(
             padding: 16px;
           }
         }
+
+        
+.v-details-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.v-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.v-event-modal {
+  width: 100%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 26px;
+  border: 1px solid #e7edf4;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 70px #00000030;
+  animation: v-modal-in 0.2s ease-out;
+}
+
+.v-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.v-modal-header h2 {
+  margin: 0 0 8px;
+  color: #17243b;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.v-modal-close {
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 35px;
+  flex-shrink: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.v-modal-close:hover {
+  background: #f1f5f9;
+  color: #17243b;
+}
+
+.v-modal-category {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: #e5f8ef;
+  color: #0d9669;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.v-modal-info {
+  display: grid;
+  gap: 13px;
+  margin-bottom: 24px;
+}
+
+.v-modal-info-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid #edf1f5;
+  border-radius: 10px;
+  color: #40516a;
+  font-size: 12px;
+}
+
+.v-modal-info-item svg {
+  flex-shrink: 0;
+  color: #0d9669;
+}
+
+.v-modal-register-note {
+  margin: 0 0 14px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.v-modal-register-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: #0d9669;
+  color: white;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.v-modal-register-btn:hover {
+  background: #087b56;
+}
+
+@keyframes v-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 500px) {
+  .v-event-modal {
+    padding: 20px;
+  }
+
+  .v-modal-header h2 {
+    font-size: 18px;
+  }
+}
+
       `}</style>
 
       <VolunteerSidebar
-        activePage="Dashboard"
-        sidebarOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        userName="Sarah Ahmed"
-        userRole="Volunteer"
-        avatarText="SA"
-      />
+  activePage="Dashboard"
+  sidebarOpen={sidebarOpen}
+  onClose={() => setSidebarOpen(false)}
+  userName={userName}
+  userRole="Volunteer"
+  avatarText={avatarText}
+  avatarImage={profileImage}
+/>
 
       <main className="v-main">
+
+        {welcomeToast && (
+  <div className="uv-toast" role="status">
+    <CheckCircle2 size={17} />
+    <span>Welcome back, {userName}! 👋</span>
+    <button
+      onClick={() => setWelcomeToast(false)}
+      aria-label="Dismiss welcome message"
+    >
+      <X size={14} />
+    </button>
+  </div>
+)}
+
         {/* NAVBAR */}
         <header className="v-topbar">
           <div className="v-top-left">
@@ -1076,12 +1466,27 @@ const notificationCount = reminderEvents.filter(
       aria-expanded={showProfile}
       aria-label="Open profile menu"
     >
-      <span className="v-avatar">SA</span>
+      <span className="v-avatar">
+  {profileImage ? (
+    <img
+      src={profileImage}
+      alt="Your profile"
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        borderRadius: "50%",
+      }}
+    />
+  ) : (
+    avatarText
+  )}
+</span>
 
-      <span className="v-profile-info">
-        <strong>Sarah Ahmed</strong>
-        <small>Volunteer</small>
-      </span>
+<span className="v-profile-info">
+  <strong>{userName}</strong>
+  <small>Volunteer</small>
+</span>
 
       <ChevronDown
         size={15}
@@ -1120,7 +1525,7 @@ const notificationCount = reminderEvents.filter(
           <div className="v-welcome">
             <div>
               <p className="v-eyebrow">Your community matters</p>
-              <h1>Welcome back, Sarah! 👋</h1>
+              <h1>Welcome back, {userName}! 👋</h1>
               <p className="v-subtitle">
                 Discover meaningful opportunities and make a difference
                 in your community.
@@ -1216,7 +1621,11 @@ const notificationCount = reminderEvents.filter(
             </div>
 
             <div className="v-event-list">
-              {filteredEvents.length > 0 ? (
+              {eventsLoading ? (
+  <div className="v-empty">Loading events...</div>
+) : eventsError ? (
+  <div className="v-empty">{eventsError}</div>
+) : filteredEvents.length > 0 ? (
                 filteredEvents.map((event) => (
                   <article className="v-event" key={event.id}>
                     <div className="v-event-info">
@@ -1277,12 +1686,13 @@ const notificationCount = reminderEvents.filter(
                           {event.status}
                         </span>
                       ) : (
-                        <Link
-                          href="/volunteer/events"
-                          className="v-text-link"
-                        >
-                          View details <ArrowRight size={14} />
-                        </Link>
+                        <button
+  type="button"
+  className="v-text-link"
+  onClick={() => setSelectedEvent(event)}
+>
+  View details <ArrowRight size={14} />
+</button>
                       )}
                     </div>
                   </article>
@@ -1388,6 +1798,80 @@ const notificationCount = reminderEvents.filter(
           </div>
         </section>
       </main>
+
+      
+{selectedEvent && (
+  <div
+    className="v-modal-overlay"
+    onClick={() => setSelectedEvent(null)}
+  >
+    <section
+      className="v-event-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="v-event-modal-title"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="v-modal-header">
+        <div>
+          <span className="v-modal-category">
+            {selectedEvent.category}
+          </span>
+
+          <h2
+            id="v-event-modal-title"
+            style={{ marginTop: 12 }}
+          >
+            {selectedEvent.title}
+          </h2>
+        </div>
+
+        <button
+          type="button"
+          className="v-modal-close"
+          onClick={() => setSelectedEvent(null)}
+          aria-label="Close event details"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      <div className="v-modal-info">
+        <div className="v-modal-info-item">
+          <CalendarDays size={18} />
+          <span>{selectedEvent.date}</span>
+        </div>
+
+        <div className="v-modal-info-item">
+          <Clock3 size={18} />
+          <span>{selectedEvent.time}</span>
+        </div>
+
+        <div className="v-modal-info-item">
+          <MapPin size={18} />
+          <span>{selectedEvent.location}</span>
+        </div>
+      </div>
+
+      <p className="v-modal-register-note">
+        Interested in participating? Go to Manage Events
+        to view the full event information and complete
+        your registration.
+      </p>
+
+      <Link
+        href="/volunteer/events"
+        className="v-modal-register-btn"
+        onClick={() => setSelectedEvent(null)}
+      >
+        For registration, go to Manage Events
+        <ArrowRight size={16} />
+      </Link>
+    </section>
+  </div>
+)}
+
+
       <VolunteerAIChat />
     </div>
   );

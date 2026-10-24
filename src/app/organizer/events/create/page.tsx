@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import OrganizerSidebar from "@/components/OrganizerSidebar";
 import OrganizerAIChat from "@/components/Organizer/OrganizerAIChat";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import {
   CalendarPlus,
   CalendarDays,
@@ -20,6 +22,8 @@ import {
 
 export default function CreateEventPage() {
   const [today, setToday] = useState("");
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setToday(new Date().toISOString().slice(0, 10));
@@ -52,16 +56,52 @@ export default function CreateEventPage() {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  
+async function handleSubmit(
+  event: React.FormEvent<HTMLFormElement>
+) {
+  event.preventDefault();
 
-    if (form.endTime <= form.startTime) {
-      alert("End time must be later than start time.");
+  if (form.endTime <= form.startTime) {
+    toast.error("End time must be later than start time.");
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    const response = await fetch("/api/events", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...form,
+        capacity: Number(form.capacity),
+        status: form.status === "Draft" ? "Draft" : "Published",
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      toast.error(data.message || "Failed to create event.");
       return;
     }
 
+    toast.success("Event created successfully!");
     setSubmitted(true);
+
+    router.push("/organizer/events");
+    router.refresh();
+  } catch (error) {
+    console.error("Create event error:", error);
+    toast.error("Something went wrong. Please try again.");
+  } finally {
+    setIsSubmitting(false);
   }
+}
+
 
   return (
     <div className="page-shell">
@@ -1137,7 +1177,7 @@ export default function CreateEventPage() {
 
                     <div className="field full">
                       <label htmlFor="contactEmail">
-                        Organizer contact email (optional)
+                        Organizer contact email
                       </label>
                       <input
                         id="contactEmail"
@@ -1161,10 +1201,14 @@ export default function CreateEventPage() {
                         Cancel
                       </Link>
 
-                      <button className="btn btn-primary" type="submit">
-                        <CalendarPlus size={15} />
-                        Create event
-                      </button>
+                      <button
+  className="btn btn-primary"
+  type="submit"
+  disabled={isSubmitting}
+>
+  <CalendarPlus size={15} />
+  {isSubmitting ? "Creating..." : "Create event"}
+</button>
                     </div>
                   </div>
                 </div>

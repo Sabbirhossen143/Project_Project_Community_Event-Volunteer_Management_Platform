@@ -2,6 +2,8 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import OrganizerSidebar from "@/components/OrganizerSidebar";
@@ -40,7 +42,7 @@ import {
 type EventStatus = "Upcoming" | "Completed" | "Draft";
 
 type EventItem = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   date: string;
@@ -51,64 +53,6 @@ type EventItem = {
   image: string;
 };
 
-const initialEvents: EventItem[] = [
-  {
-    id: 1,
-    title: "Tree Plantation Drive",
-    category: "Environment",
-    date: "Nov 15, 2026",
-    location: "Riverside Park, Dhaka",
-    registered: 12,
-    capacity: 20,
-    status: "Upcoming",
-    image: "🌱",
-  },
-  {
-    id: 2,
-    title: "Digital Literacy Workshop",
-    category: "Education",
-    date: "Nov 22, 2026",
-    location: "Community Center, Dhaka",
-    registered: 8,
-    capacity: 15,
-    status: "Upcoming",
-    image: "💻",
-  },
-  {
-    id: 3,
-    title: "Free Health Camp",
-    category: "Health",
-    date: "Nov 30, 2026",
-    location: "City Hospital, Dhaka",
-    registered: 5,
-    capacity: 20,
-    status: "Upcoming",
-    image: "🩺",
-  },
-  {
-    id: 4,
-    title: "Cloth Donation Drive",
-    category: "Community",
-    date: "Dec 05, 2026",
-    location: "Mirpur Community Hall",
-    registered: 18,
-    capacity: 25,
-    status: "Upcoming",
-    image: "🤝",
-  },
-  {
-    id: 5,
-    title: "Community Clean-up",
-    category: "Environment",
-    date: "Oct 10, 2026",
-    location: "Hatirjheel, Dhaka",
-    registered: 24,
-    capacity: 25,
-    status: "Completed",
-    image: "♻️",
-  },
-];
-
 const categoryColors: Record<string, string> = {
   Environment: "#34c99a",
   Education: "#8b5cf6",
@@ -116,59 +60,90 @@ const categoryColors: Record<string, string> = {
   Community: "#f59e0b",
 };
 
-const recentRegistrations = [
-  {
-    id: 1,
-    name: "Ayesha Rahman",
-    initials: "AR",
-    event: "Tree Plantation Drive",
-    date: "Nov 15, 2026",
-    status: "Confirmed",
-    color: "#dcfce7",
-  },
-  {
-    id: 2,
-    name: "Tanvir Hasan",
-    initials: "TH",
-    event: "Digital Literacy Workshop",
-    date: "Nov 22, 2026",
-    status: "Pending",
-    color: "#dbeafe",
-  },
-  {
-    id: 3,
-    name: "Nusrat Jahan",
-    initials: "NJ",
-    event: "Free Health Camp",
-    date: "Nov 30, 2026",
-    status: "Confirmed",
-    color: "#f3e8ff",
-  },
-  {
-    id: 4,
-    name: "Rafi Ahmed",
-    initials: "RA",
-    event: "Cloth Donation Drive",
-    date: "Dec 05, 2026",
-    status: "Confirmed",
-    color: "#ffedd5",
-  },
-];
 
 export default function OrganizerDashboard() {
-  const [events, setEvents] = useState<EventItem[]>(initialEvents);
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState("Last 7 days");
   const [showProfile, setShowProfile] = useState(false);
   const [showAllRegistrations, setShowAllRegistrations] = useState(false);
   const [notice, setNotice] = useState("");
+  const [userName, setUserName] = useState("Organizer");
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [today, setToday] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] =
   useState<OrganizerEvent | null>(null);
-  const router = useRouter();
+  const [events, setEvents] = useState<EventItem[]>([]);
+const [recentRegistrations, setRecentRegistrations] = useState<
+  {
+    id: string;
+    name: string;
+    initials: string;
+    event: string;
+    date: string;
+    status: string;
+    color: string;
+  }[]
+>([]);
+const [dashboardLoading, setDashboardLoading] = useState(true);
+const [registrationChartData, setRegistrationChartData] =
+  useState<
+    { label: string; value: number; color: string }[]
+  >([]);
+
+
+
+useEffect(() => {
+  if (status !== "authenticated") return;
+
+  let cancelled = false;
+
+  async function loadDashboard() {
+    try {
+      setDashboardLoading(true);
+
+      const response = await fetch(
+        `/api/organizer/dashboard?period=${encodeURIComponent(period)}`,
+        { cache: "no-store" }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to load dashboard data."
+        );
+      }
+
+      if (cancelled) return;
+
+      setEvents(data.events || []);
+      setRecentRegistrations(data.recentRegistrations || []);
+      setRegistrationChartData(data.registrationChartData || []);
+    } catch (error) {
+      console.error("Dashboard loading error:", error);
+
+      if (!cancelled) {
+        setNotice("Failed to load dashboard data.");
+      }
+    } finally {
+      if (!cancelled) {
+        setDashboardLoading(false);
+      }
+    }
+  }
+
+  loadDashboard();
+
+  return () => {
+    cancelled = true;
+  };
+}, [status, period]);
+
 
 useEffect(() => {
   function handleOutsideClick(event: MouseEvent) {
@@ -194,6 +169,60 @@ useEffect(() => {
   setToday(currentDate);
 }, []);
 
+useEffect(() => {
+  if (status !== "authenticated") return;
+
+  async function loadProfileImage() {
+    try {
+      const response = await fetch("/api/organizer/profile", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+      setProfileImage(data.profile?.profileImage || null);
+    } catch (error) {
+      console.error("Failed to load profile image:", error);
+    }
+  }
+
+  loadProfileImage();
+}, [status]);
+
+useEffect(() => {
+  if (status === "loading") return;
+
+  if (status === "unauthenticated" || !session?.user) {
+    router.replace("/login");
+    return;
+  }
+
+  const role = (session.user as { role?: string }).role;
+
+  if (role !== "Organizer") {
+    router.replace("/volunteer/dashboard");
+    return;
+  }
+
+  const name = session.user.name?.trim() || "Organizer";
+  setUserName(name);
+
+  if (sessionStorage.getItem("showWelcomeToast") === "true") {
+    sessionStorage.removeItem("showWelcomeToast");
+    setNotice(`Welcome back, ${name}! 👋`);
+  }
+}, [session, status, router]);
+
+useEffect(() => {
+  if (!notice) return;
+
+  const timer = setTimeout(() => {
+    setNotice("");
+  }, 4000);
+
+  return () => clearTimeout(timer);
+}, [notice]);
 
   const [aiMessage, setAiMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<
@@ -240,6 +269,11 @@ useEffect(() => {
       color: categoryColors[name] || "#64748b",
     }));
   }, [events]);
+
+const maxRegistrations = Math.max(
+  1,
+  ...registrationChartData.map((item) => item.value)
+);
 
   const filteredEvents = events.filter((event) =>
     `${event.title} ${event.category} ${event.location}`
@@ -1337,6 +1371,12 @@ const notificationCount =
           font-weight: 750;
         }
 
+        .uv-avatar-image {
+  display: block;
+  object-fit: cover;
+  overflow: hidden;
+}
+
         .uv-category-pill,
         .uv-status-pill {
           display: inline-flex;
@@ -1709,12 +1749,31 @@ const notificationCount =
         }
       `}</style>
 
-      <OrganizerSidebar
-        activePage="Dashboard"
-        sidebarOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onLogout={() => setNotice("Connect this button to your sign-out flow.")}
-      />
+      
+<OrganizerSidebar
+  activePage="Dashboard"
+  sidebarOpen={sidebarOpen}
+  onClose={() => setSidebarOpen(false)}
+    profileImage={profileImage}
+
+  onLogout={async () => {
+  await signOut({
+    callbackUrl: "/login",
+    redirect: true,
+  });
+}}
+
+  userName={userName}
+  userRole="Organizer"
+  avatarText={userName
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()}
+/>
+
 
       {/* Main Content */}
       <main className="uv-main">
@@ -1885,9 +1944,24 @@ const notificationCount =
               className="uv-profile"
               onClick={() => setShowProfile((current) => !current)}
             >
-              <div className="uv-avatar">SA</div>
+              {profileImage ? (
+  <img
+    src={profileImage}
+    alt="Profile"
+    className="uv-avatar uv-avatar-image"
+  />
+) : (
+  <div className="uv-avatar">
+    {userName
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()}
+  </div>
+)}
               <div className="uv-profile-copy">
-                <div className="uv-profile-name">Sarah Ahmed</div>
+                <div className="uv-profile-name">{userName}</div>
                 <div className="uv-profile-role">Organizer</div>
               </div>
               <ChevronDown
@@ -1914,14 +1988,19 @@ const notificationCount =
 >
   My Profile
 </Link>
-                <button
-                  onClick={() => {
-                    setShowProfile(false);
-                    setNotice("Connect this action to your sign-out flow.");
-                  }}
-                >
-                  Log out
-                </button>
+                
+<button
+  onClick={async () => {
+    setShowProfile(false);
+    await signOut({
+      callbackUrl: "/login",
+      redirect: true,
+    });
+  }}
+>
+  Log out
+</button>
+
               </div>
             )}
           </div>
@@ -1931,7 +2010,7 @@ const notificationCount =
           {/* Welcome */}
           <section className="uv-page-head">
             <div>
-              <h1>Welcome back, Sarah Ahmed! 👋</h1>
+              <h1>Welcome back, {userName}! 👋</h1>
               <p>Here's what's happening with your events and volunteers.</p>
             </div>
 
@@ -2098,29 +2177,34 @@ const notificationCount =
                   <span>0</span>
                 </div>
 
-                <div className="uv-bars">
-                  {[
-                    { label: "Tree Drive", value: 12, color: "#35c99b" },
-                    { label: "Digital Skills", value: 8, color: "#3478e5" },
-                    { label: "Health Camp", value: 5, color: "#8b5cf6" },
-                    { label: "Cloth Drive", value: 18, color: "#f59e0b" },
-                  ].map((item) => (
-                    <div className="uv-bar-group" key={item.label}>
-                      <strong style={{ fontSize: 10, color: "#34435a" }}>
-                        {item.value}
-                      </strong>
-                      <div
-                        className="uv-bar"
-                        style={{
-                          height: `${(item.value / 20) * 105}px`,
-                          background: item.color,
-                        }}
-                        title={`${item.value} registrations`}
-                      />
-                      <span className="uv-bar-label">{item.label}</span>
-                    </div>
-                  ))}
-                </div>
+                
+<div className="uv-bars">
+  {registrationChartData.length > 0 ? (
+    registrationChartData.map((item) => (
+      <div className="uv-bar-group" key={item.label}>
+        <strong style={{ fontSize: 10, color: "#34435a" }}>
+          {item.value}
+        </strong>
+
+        <div
+          className="uv-bar"
+          style={{
+            height: `${(item.value / maxRegistrations) * 105}px`,
+            background: item.color,
+          }}
+          title={`${item.value} registrations`}
+        />
+
+        <span className="uv-bar-label">{item.label}</span>
+      </div>
+    ))
+  ) : (
+    <p style={{ fontSize: 12, color: "#8795a8", margin: "auto" }}>
+      No registrations in this period.
+    </p>
+  )}
+</div>
+
               </div>
             </article>
           </section>
@@ -2144,6 +2228,11 @@ const notificationCount =
             </div>
 
             <div className="uv-upcoming-list">
+              {dashboardLoading && (
+  <p className="uv-empty">
+    Loading dashboard data...
+  </p>
+)}
               {upcomingList.map((event) => (
                 <div className="uv-upcoming-item" key={event.id}>
                   <div className="uv-event-emoji">{event.image}</div>
@@ -2228,7 +2317,13 @@ const notificationCount =
                   </thead>
 
                   <tbody>
-                    {filteredEvents.length ? (
+                    {dashboardLoading ? (
+  <tr>
+    <td colSpan={6} className="uv-empty">
+      Loading events...
+    </td>
+  </tr>
+) : filteredEvents.length > 0 ? (
                       filteredEvents.map((event) => (
                         <tr key={event.id}>
                           <td className="uv-event-title-cell">
@@ -2271,11 +2366,11 @@ const notificationCount =
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6} className="uv-empty">
-                          No events match "{search}".
-                        </td>
-                      </tr>
-                    )}
+    <td colSpan={6} className="uv-empty">
+      No events found.
+    </td>
+  </tr>
+)}
                   </tbody>
                 </table>
               </div>
@@ -2301,27 +2396,32 @@ const notificationCount =
                 </button>
               </div>
 
-              <div className="uv-registration-chart">
-                {[
-                  { label: "Tree Drive", value: 12, color: "#35c99b" },
-                  { label: "Digital Skills", value: 8, color: "#3478e5" },
-                  { label: "Health Camp", value: 5, color: "#8b5cf6" },
-                  { label: "Cloth Drive", value: 18, color: "#f59e0b" },
-                ].map((item) => (
-                  <div className="uv-reg-bar-group" key={item.label}>
-                    <strong>{item.value}</strong>
-                    <div className="uv-reg-bar-track">
-                      <span
-                        style={{
-                          height: `${(item.value / 20) * 100}%`,
-                          background: item.color,
-                        }}
-                      />
-                    </div>
-                    <span>{item.label}</span>
-                  </div>
-                ))}
-              </div>
+              
+<div className="uv-registration-chart">
+  {registrationChartData.length > 0 ? (
+    registrationChartData.map((item) => (
+      <div className="uv-reg-bar-group" key={item.label}>
+        <strong>{item.value}</strong>
+
+        <div className="uv-reg-bar-track">
+          <span
+            style={{
+              height: `${(item.value / maxRegistrations) * 100}%`,
+              background: item.color,
+            }}
+          />
+        </div>
+
+        <span>{item.label}</span>
+      </div>
+    ))
+  ) : (
+    <p style={{ fontSize: 12, color: "#8795a8", margin: "auto" }}>
+      No registrations in this period.
+    </p>
+  )}
+</div>
+
 
               <div className="uv-registration-list">
                 {(showAllRegistrations

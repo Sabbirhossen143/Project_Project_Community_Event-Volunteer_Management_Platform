@@ -130,7 +130,6 @@ export default function LoginPage() {
   "google" | "github" | "credentials" | null
 >(null);
 
- 
 
 const handleLogin = async (
   e: React.FormEvent<HTMLFormElement>
@@ -157,10 +156,12 @@ const handleLogin = async (
     )?.role;
 
     if (role === "Organizer") {
-      window.location.href = "/organizer/dashboard";
-    } else if (role === "Volunteer") {
-      window.location.href = "/volunteer/dashboard";
-    } else {
+  sessionStorage.setItem("showWelcomeToast", "true");
+  window.location.href = "/organizer/dashboard";
+} else if (role === "Volunteer") {
+  sessionStorage.setItem("showWelcomeToast", "true");
+  window.location.href = "/volunteer/dashboard";
+} else {
       alert("User role not found. Please contact support.");
     }
   } catch (error) {

@@ -44,33 +44,63 @@ export default function EditVolunteerProfilePage() {
   const [form, setForm] = useState<VolunteerForm>(initialForm);
   const [profileImage, setProfileImage] = useState("");
   const [savedMessage, setSavedMessage] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+  let cancelled = false;
+
+  async function loadProfile() {
     try {
-      const saved = localStorage.getItem("volunteerProfileData");
-      const image =
-        localStorage.getItem("volunteerProfileImage") || "";
+      const response = await fetch("/api/volunteer/profile", {
+        cache: "no-store",
+      });
 
-      if (saved) {
-        const data = JSON.parse(saved);
+      const result = await response.json();
 
-        setForm({
-          ...initialForm,
-          ...data,
-          skills: Array.isArray(data.skills)
-            ? data.skills.join(", ")
-            : data.skills || initialForm.skills,
-          interests: Array.isArray(data.interests)
-            ? data.interests.join(", ")
-            : data.interests || initialForm.interests,
-        });
+      if (!response.ok) {
+        throw new Error(result.message || "Profile load failed.");
       }
 
-      setProfileImage(image);
-    } catch {
-      // Invalid browser data হলে default form থাকবে।
+      if (cancelled) return;
+
+      const data = result.profile;
+
+      setForm({
+        name: data.name || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        location: data.location || "",
+        bio: data.bio || "",
+        skills: Array.isArray(data.skills)
+          ? data.skills.join(", ")
+          : "",
+        interests: Array.isArray(data.interests)
+          ? data.interests.join(", ")
+          : "",
+      });
+
+      setProfileImage(data.profileImage || "");
+    } catch (error) {
+      if (!cancelled) {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Could not load your profile."
+        );
+      }
+    } finally {
+      if (!cancelled) setLoadingProfile(false);
     }
-  }, []);
+  }
+
+  loadProfile();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
 
   function updateField(
     field: keyof VolunteerForm,
@@ -115,41 +145,50 @@ export default function EditVolunteerProfilePage() {
     reader.readAsDataURL(file);
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-    try {
-      localStorage.setItem(
-        "volunteerProfileData",
-        JSON.stringify({
-          ...form,
-          skills: form.skills
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean),
-          interests: form.interests
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean),
-        })
-      );
+  setSaving(true);
+  setSavedMessage(false);
+  setErrorMessage("");
 
-      if (profileImage) {
-        localStorage.setItem(
-          "volunteerProfileImage",
-          profileImage
-        );
-      } else {
-        localStorage.removeItem("volunteerProfileImage");
-      }
+  try {
+    const response = await fetch("/api/volunteer/profile", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...form,
+        skills: form.skills
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+        interests: form.interests
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+        profileImage,
+      }),
+    });
 
-      setSavedMessage(true);
-    } catch {
-      alert(
-        "Could not save the profile in browser storage. Please use an image smaller than 5 MB."
-      );
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || "Profile update failed.");
     }
+
+    setSavedMessage(true);
+  } catch (error) {
+    setErrorMessage(
+      error instanceof Error
+        ? error.message
+        : "Could not save your profile."
+    );
+  } finally {
+    setSaving(false);
   }
+}
 
   const initials =
     form.name
@@ -229,21 +268,20 @@ export default function EditVolunteerProfilePage() {
                   Profile saved on this device
                 </p>
 
-                <p className="mt-1 text-xs leading-5">
-                  Your changes are saved in this browser for
-                  the demo. They are not uploaded to a server
-                  or database.
-                </p>
-
                 <Link
                   href="/volunteer/profile"
                   className="mt-2 inline-block font-bold underline"
                 >
-                  View updated profile
+                  View profile
                 </Link>
               </div>
             </div>
           )}
+          {errorMessage && (
+  <p role="alert" className="mb-4 text-sm font-medium text-red-600">
+    {errorMessage}
+  </p>
+)}
 
           <form
             onSubmit={handleSubmit}
@@ -454,6 +492,7 @@ export default function EditVolunteerProfilePage() {
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 text-xs font-extrabold text-white shadow-lg shadow-emerald-900/10 hover:bg-emerald-800"
                 >
                   <Save size={15} />
+{saving ? "Saving..." : "Save Profile"}
                   Save changes
                 </button>
               </div>

@@ -59,7 +59,7 @@ export default function EventDetailsModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-2 backdrop-blur-sm sm:p-6"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -69,10 +69,10 @@ export default function EventDetailsModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="event-modal-title"
-        className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="relative my-auto flex max-h-[88dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[90vh] sm:rounded-3xl"
       >
         <div
-          className="relative shrink-0 px-6 pb-7 pt-7 sm:px-9 sm:pt-9"
+          className="relative shrink-0 px-4 pb-4 pt-4 sm:px-9 sm:pb-7 sm:pt-7"
           style={{
             background: `linear-gradient(125deg, ${event.color}, #ffffff)`,
           }}

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import VolunteerSidebar from "@/components/VolunteerSidebar";
 import VolunteerAIChat from "@/components/volunteer/VolunteerAIChat";
 import {
@@ -22,7 +23,7 @@ import {
 } from "lucide-react";
 
 type Activity = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   date: string;
@@ -32,101 +33,130 @@ type Activity = {
   description: string;
 };
 
-const activities: Activity[] = [
-  {
-    id: 1,
-    title: "Tree Plantation Drive",
-    category: "Environment",
-    date: "Oct 12, 2026",
-    hours: 4,
-    location: "Dhaka University",
-    status: "Completed",
-    description:
-      "Participated in planting trees and improving the local environment.",
-  },
-  {
-    id: 2,
-    title: "Community Food Distribution",
-    category: "Community Service",
-    date: "Oct 05, 2026",
-    hours: 5,
-    location: "Mirpur, Dhaka",
-    status: "Completed",
-    description:
-      "Helped distribute food packages to families in need.",
-  },
-  {
-    id: 3,
-    title: "Digital Literacy Workshop",
-    category: "Education",
-    date: "Nov 22, 2026",
-    hours: 3,
-    location: "Dhanmondi, Dhaka",
-    status: "Upcoming",
-    description:
-      "Will assist participants with basic digital skills and computer literacy.",
-  },
-  {
-    id: 4,
-    title: "Community Health Camp",
-    category: "Healthcare",
-    date: "Nov 30, 2026",
-    hours: 4,
-    location: "Uttara, Dhaka",
-    status: "Pending",
-    description:
-      "Registration submitted and waiting for organizer confirmation.",
-  },
-  {
-    id: 5,
-    title: "Winter Clothes Distribution",
-    category: "Community Service",
-    date: "Sep 20, 2026",
-    hours: 6,
-    location: "Gazipur, Bangladesh",
-    status: "Completed",
-    description:
-      "Supported the distribution of winter clothes to underprivileged people.",
-  },
-];
+function getStatusClass(status: Activity["status"]) {
+  return `ah-status ${status.toLowerCase()}`;
+}
 
 export default function ActivityHistoryPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
-  const [selectedActivity, setSelectedActivity] =
-    useState<Activity | null>(null);
+const [search, setSearch] = useState("");
+const [filter, setFilter] = useState("All");
+const [filterOpen, setFilterOpen] = useState(false);
+const [selectedActivity, setSelectedActivity] =
+  useState<Activity | null>(null);
 
-  const completedActivities = activities.filter(
-    (activity) => activity.status === "Completed"
-  );
+const [activities, setActivities] = useState<Activity[]>([]);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState("");
 
-  const totalHours = completedActivities.reduce(
-    (total, activity) => total + activity.hours,
-    0
-  );
+const { status: sessionStatus } = useSession();
 
-  const filteredActivities = activities.filter((activity) => {
-    const matchesSearch = `${activity.title} ${activity.category} ${activity.location}`
+useEffect(() => {
+  if (sessionStatus === "loading") return;
+
+  if (sessionStatus === "unauthenticated") {
+    setActivities([]);
+    setLoading(false);
+    setError("Please log in to view your activity history.");
+    return;
+  }
+
+  const fetchActivities = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch("/api/my-registrations", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to load activities.");
+      }
+
+      const registrations = Array.isArray(data)
+        ? data
+        : data.registrations ?? data.events ?? [];
+
+      const formattedActivities: Activity[] = registrations.map(
+        (item: any) => {
+          const event = item.event ?? item.eventInfo ?? item;
+
+          const rawStatus = String(
+            item.status ?? item.registrationStatus ?? "Pending"
+          ).toLowerCase();
+
+          const eventDate = event.date ?? item.date ?? "";
+          const parsedDate = new Date(eventDate);
+
+          let activityStatus: Activity["status"] = "Pending";
+
+          if (
+            ["completed", "attended"].includes(rawStatus)
+          ) {
+            activityStatus = "Completed";
+          } else if (
+  ["confirmed", "approved", "accepted"].includes(rawStatus)
+) {
+  activityStatus = "Upcoming";
+}
+
+          return {
+            id: String(item._id ?? item.id ?? item.registrationId),
+            title: event.title ?? item.eventName ?? "Untitled Event",
+            category: event.category ?? "Community",
+            date: eventDate
+              ? new Date(eventDate).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "2-digit",
+                  year: "numeric",
+                })
+              : "Date not specified",
+            hours: Number(event.hours ?? item.hours ?? 0),
+            location: event.location ?? item.location ?? "Not specified",
+            status: activityStatus,
+            description:
+              event.description ?? item.description ??
+              "No activity description available.",
+          };
+        }
+      );
+
+      setActivities(formattedActivities);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Something went wrong."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchActivities();
+}, [sessionStatus]);
+
+const completedActivities = activities.filter(
+  (activity) => activity.status === "Completed"
+);
+
+const totalHours = completedActivities.reduce(
+  (total, activity) => total + activity.hours,
+  0
+);
+
+const filteredActivities = activities.filter((activity) => {
+  const matchesSearch =
+    `${activity.title} ${activity.category} ${activity.location}`
       .toLowerCase()
       .includes(search.toLowerCase());
 
-    const matchesFilter =
-      filter === "All" || activity.status === filter;
+  const matchesFilter =
+    filter === "All" || activity.status === filter;
 
-    return matchesSearch && matchesFilter;
-  });
-
-  function getStatusClass(status: Activity["status"]) {
-    switch (status) {
-      case "Completed":
-        return "ah-status completed";
-      case "Upcoming":
-        return "ah-status upcoming";
-      default:
-        return "ah-status pending";
-    }
-  }
+  return matchesSearch && matchesFilter;
+});
 
   return (
     <div className="activity-app">
@@ -397,28 +427,130 @@ export default function ActivityHistoryPage() {
           color: #17243b;
           font-size: 11px;
         }
+        
+        .ah-search:focus-within {
+  border-color: #0d9669;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(13, 150, 105, 0.12);
+  transition: all 0.2s ease;
+}
 
-        .ah-filter-select {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          height: 39px;
-          padding: 0 10px;
-          border: 1px solid #e0e7f0;
-          border-radius: 9px;
-          background: white;
-          color: #40516a;
-        }
+.ah-search input:focus {
+  outline: none;
+  box-shadow: none;
+}
 
-        .ah-filter-select select {
-          max-width: 130px;
-          border: none;
-          outline: none;
-          background: transparent;
-          color: #40516a;
-          font-size: 11px;
-          cursor: pointer;
-        }
+       
+.ah-filter-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ah-filter-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  min-width: 190px;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  color: #17243b;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ah-filter-select:hover,
+.ah-filter-select:focus-visible {
+  border-color: #0d9669;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 150, 105, 0.1);
+}
+
+.ah-filter-label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.ah-filter-caption {
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.ah-filter-arrow {
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+.ah-filter-arrow.open {
+  transform: rotate(180deg);
+}
+
+.ah-filter-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  width: 100%;
+  min-width: 190px;
+  padding: 6px;
+  border: 1px solid #e8eef3;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  animation: ah-dropdown-in 0.16s ease-out;
+}
+
+.ah-filter-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 11px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #475569;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ah-filter-option:hover {
+  background: #f0fdf7;
+  color: #087f5b;
+}
+
+.ah-filter-option.active {
+  background: #eaf8f1;
+  color: #087f5b;
+  font-weight: 700;
+}
+
+.ah-filter-option.active svg {
+  color: #0d9669;
+}
+
+@keyframes ah-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
         /* ACTIVITY ROWS */
         .ah-activity {
@@ -865,12 +997,10 @@ export default function ActivityHistoryPage() {
               </div>
 
               <div className="ah-stat-number">
-                {
-                  activities.filter(
-                    (activity) => activity.status === "Upcoming"
-                  ).length
-                }
-              </div>
+  {activities.filter(
+    (activity) => activity.status === "Upcoming"
+  ).length}
+</div>
 
               <div className="ah-stat-note">
                 Activities scheduled for you
@@ -904,95 +1034,130 @@ export default function ActivityHistoryPage() {
                 />
               </label>
 
-              <label className="ah-filter-select">
-                <ChevronDown size={15} />
+              
+<div className="ah-filter-wrap">
+  <button
+    type="button"
+    className="ah-filter-select"
+    onClick={() => setFilterOpen((open) => !open)}
+    aria-expanded={filterOpen}
+  >
+    <span className="ah-filter-label">
+      <span>{filter === "All" ? "All Activities" : filter}</span>
+    </span>
+    <ChevronDown
+      size={16}
+      className={`ah-filter-arrow ${filterOpen ? "open" : ""}`}
+    />
+  </button>
 
-                <select
-                  value={filter}
-                  onChange={(event) => setFilter(event.target.value)}
-                  aria-label="Filter activities by status"
-                >
-                  <option value="All">All Activities</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Upcoming">Upcoming</option>
-                  <option value="Pending">Pending</option>
-                </select>
-              </label>
+  {filterOpen && (
+    <div className="ah-filter-menu">
+      {[
+        { value: "All", label: "All Activities" },
+        { value: "Completed", label: "Completed" },
+        { value: "Upcoming", label: "Upcoming" },
+        { value: "Pending", label: "Pending" },
+      ].map((option) => (
+        <button
+          type="button"
+          key={option.value}
+          className={`ah-filter-option ${
+            filter === option.value ? "active" : ""
+          }`}
+          onClick={() => {
+            setFilter(option.value);
+            setFilterOpen(false);
+          }}
+        >
+          <span>{option.label}</span>
+          {filter === option.value && (
+            <CheckCircle2 size={16} />
+          )}
+        </button>
+      ))}
+    </div>
+  )}
+</div>
+
             </div>
 
             {/* ACTIVITY LIST */}
-            <div>
-              {filteredActivities.length > 0 ? (
-                filteredActivities.map((activity) => (
-                  <article className="ah-activity" key={activity.id}>
-                    <div className="ah-activity-main">
-                      <div className="ah-activity-icon">
-                        {activity.status === "Completed" ? (
-                          <CheckCircle2 size={21} />
-                        ) : activity.status === "Upcoming" ? (
-                          <CalendarDays size={21} />
-                        ) : (
-                          <Clock3 size={21} />
-                        )}
-                      </div>
+<div>
+  {loading ? (
+    <div className="ah-empty">Loading activity history...</div>
+  ) : error ? (
+    <div className="ah-empty" style={{ color: "#dc2626" }}>
+      {error}
+    </div>
+  ) : filteredActivities.length > 0 ? (
+    filteredActivities.map((activity) => (
+        <article className="ah-activity" key={activity.id}>
+  <div className="ah-activity-main">
+    <div className="ah-activity-icon">
+      {activity.status === "Completed" ? (
+        <CheckCircle2 size={21} />
+      ) : activity.status === "Upcoming" ? (
+        <CalendarDays size={21} />
+      ) : (
+        <Clock3 size={21} />
+      )}
+    </div>
 
-                      <div className="ah-activity-details">
-                        <h3>{activity.title}</h3>
+    <div className="ah-activity-details">
+      <h3>{activity.title}</h3>
 
-                        <span className="ah-category">
-                          {activity.category}
-                        </span>
+      <span className="ah-category">{activity.category}</span>
 
-                        <p className="ah-activity-description">
-                          {activity.description}
-                        </p>
+      <p className="ah-activity-description">
+        {activity.description}
+      </p>
 
-                        <div className="ah-meta">
-                          <span className="ah-meta-item">
-                            <CalendarDays size={13} />
-                            {activity.date}
-                          </span>
+      <div className="ah-meta">
+        <span className="ah-meta-item">
+          <CalendarDays size={13} />
+          {activity.date}
+        </span>
 
-                          <span className="ah-meta-item">
-                            <MapPin size={13} />
-                            {activity.location}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+        <span className="ah-meta-item">
+          <MapPin size={13} />
+          {activity.location}
+        </span>
+      </div>
+    </div>
+  </div>
 
-                    <div className="ah-activity-right">
-                      <span className={getStatusClass(activity.status)}>
-                        {activity.status === "Completed" ? (
-                          <CheckCircle2 size={12} />
-                        ) : (
-                          <Clock3 size={12} />
-                        )}
+  <div className="ah-activity-right">
+    <span className={getStatusClass(activity.status)}>
+      {activity.status === "Completed" ? (
+        <CheckCircle2 size={12} />
+      ) : (
+        <Clock3 size={12} />
+      )}
+      {activity.status}
+    </span>
 
-                        {activity.status}
-                      </span>
+    <span className="ah-hours">
+      <Clock3 size={13} />
+      {activity.hours} hours
+    </span>
 
-                      <span className="ah-hours">
-                        <Clock3 size={13} />
-                        {activity.hours} hours
-                      </span>
-
-                      <button
-                        type="button"
-                        className="ah-details-button"
-                        onClick={() => setSelectedActivity(activity)}
-                      >
-                        Details <ArrowRight size={12} />
-                      </button>
-                    </div>
-                  </article>
-                ))
-              ) : (
-                <div className="ah-empty">
-                  No activities found. Try changing your search or filter.
-                </div>
-              )}
-            </div>
+    <button
+      type="button"
+      className="ah-details-button"
+      onClick={() => setSelectedActivity(activity)}
+    >
+      Details <ArrowRight size={12} />
+    </button>
+  </div>
+</article>
+    ))
+  ) : (
+    <div className="ah-empty">
+      No activities found. Try changing your search or filter.
+    </div>
+  )}
+</div>
 
             <div className="ah-footer">
               <span>

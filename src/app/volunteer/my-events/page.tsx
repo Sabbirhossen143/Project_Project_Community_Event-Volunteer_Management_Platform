@@ -25,61 +25,18 @@ import {
   QrCode,
 } from "lucide-react";
 
-
 type MyEvent = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   date: string;
   time: string;
   location: string;
-  status: "Confirmed" | "Pending" | "Cancelled";
+  status: "Confirmed" | "Pending" | "Rejected" | "Cancelled";
   description: string;
   color: string;
   textColor: string;
 };
-
-const initialMyEvents: MyEvent[] = [
-  {
-    id: 1,
-    title: "Tree Plantation Drive",
-    category: "Environment",
-    date: "Nov 15, 2026",
-    time: "9:00 AM",
-    location: "Dhaka University",
-    status: "Confirmed",
-    description:
-      "Help make our communities greener by planting trees and promoting environmental awareness.",
-    color: "#dcfce7",
-    textColor: "#15803d",
-  },
-  {
-    id: 2,
-    title: "Digital Literacy Workshop",
-    category: "Education",
-    date: "Nov 22, 2026",
-    time: "10:00 AM",
-    location: "Dhanmondi, Dhaka",
-    status: "Pending",
-    description:
-      "Help people develop essential digital skills and become more confident with technology.",
-    color: "#dbeafe",
-    textColor: "#1d4ed8",
-  },
-  {
-    id: 3,
-    title: "Community Food Distribution",
-    category: "Community",
-    date: "Oct 10, 2026",
-    time: "8:00 AM",
-    location: "Uttara, Dhaka",
-    status: "Confirmed",
-    description:
-      "Help organize food packages and distribute them to families in the community.",
-    color: "#ffedd5",
-    textColor: "#c2410c",
-  },
-];
 
 const tabs = ["All Events", "Upcoming", "Completed", "Pending"];
 
@@ -90,23 +47,47 @@ export default function MyEventsPage() {
   const [activeTab, setActiveTab] = useState("All Events");
   const [todayStart, setTodayStart] = useState<number | null>(null);
   
-const [myEvents, setMyEvents] =
-  useState<MyEvent[]>(initialMyEvents);
+const [myEvents, setMyEvents] = useState<MyEvent[]>([]);
+const [loading, setLoading] = useState(true);
+const [cancelEventId, setCancelEventId] = useState<string | null>(null);
+const [cancelling, setCancelling] = useState(false);
+const [error, setError] = useState("");
 
-const handleCancelRegistration = (eventId: number) => {
-  const confirmed = window.confirm(
-    "Are you sure you want to cancel this registration?"
-  );
 
-  if (!confirmed) return;
+const handleCancelRegistration = async () => {
+  if (!cancelEventId) return;
 
-  setMyEvents((currentEvents) =>
-    currentEvents.map((event) =>
-      event.id === eventId && event.status === "Pending"
-        ? { ...event, status: "Cancelled" }
-        : event
-    )
-  );
+  try {
+    setCancelling(true);
+
+    const response = await fetch("/api/my-registrations", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ registrationId: cancelEventId }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Could not cancel registration.");
+    }
+
+    setMyEvents((events) =>
+      events.map((event) =>
+        event.id === cancelEventId
+          ? { ...event, status: "Cancelled" }
+          : event
+      )
+    );
+
+    setCancelEventId(null);
+  } catch (err) {
+    window.alert(
+      err instanceof Error ? err.message : "Cancellation failed."
+    );
+  } finally {
+    setCancelling(false);
+  }
 };
 
   const [selectedEvent, setSelectedEvent] =
@@ -116,10 +97,83 @@ const handleCancelRegistration = (eventId: number) => {
   useState<MyEvent | null>(null);
 
   useEffect(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    setTodayStart(today.getTime());
-  }, []);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  setTodayStart(today.getTime());
+
+  async function loadMyEvents() {
+    try {
+      setError("");
+
+      const response = await fetch("/api/my-registrations", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to load registrations.");
+      }
+
+      const colors = [
+        ["#dcfce7", "#15803d"],
+        ["#dbeafe", "#1d4ed8"],
+        ["#ffedd5", "#c2410c"],
+        ["#f3e8ff", "#7e22ce"],
+      ];
+
+      const mapped: MyEvent[] = (data.registrations ?? []).map(
+        (r: {
+          _id: string;
+          title: string;
+          category: string;
+          date?: string;
+          time: string;
+          location: string;
+          description: string;
+          status: "Pending" | "Confirmed" | "Rejected" | "Cancelled";
+        }, index: number) => {
+          const colorPair = colors[index % colors.length];
+
+          return {
+            id: r._id,
+            title: r.title,
+            category: r.category,
+            date: r.date
+              ? new Date(r.date).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "2-digit",
+                  year: "numeric",
+                })
+              : "Date not specified",
+            time: r.time || "Time not specified",
+            location: r.location || "Location not specified",
+            description: r.description || "Event registration",
+            status: r.status,
+            color: colorPair[0],
+            textColor: colorPair[1],
+          };
+        }
+      );
+
+      setMyEvents(mapped);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not load events."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  loadMyEvents();
+
+const intervalId = window.setInterval(() => {
+  loadMyEvents();
+}, 5000);
+
+return () => window.clearInterval(intervalId);
+}, []);
 
   const filteredEvents = myEvents.filter((event) => {
     const eventTime = new Date(event.date).getTime();
@@ -524,10 +578,15 @@ const handleCancelRegistration = (eventId: number) => {
           color: #a16207;
         }
 
-        .me-status.cancelled {
+        .me-status.rejected {
           background: #fee2e2;
           color: #b91c1c;
         }
+
+        .me-status.cancelled {
+  background: #f1f5f9;
+  color: #475569;
+}
 
         .me-status-actions {
   display: flex;
@@ -786,8 +845,12 @@ const handleCancelRegistration = (eventId: number) => {
             </div>
 
             <div>
-              {filteredEvents.length > 0 ? (
-                filteredEvents.map((event) => (
+  {loading ? (
+    <div className="me-empty">Loading your registrations...</div>
+  ) : error ? (
+    <div className="me-empty">{error}</div>
+  ) : filteredEvents.length > 0 ? (
+    filteredEvents.map((event) => (
                   <article className="me-event" key={event.id}>
                     <div className="me-event-left">
                       <div
@@ -813,8 +876,9 @@ const handleCancelRegistration = (eventId: number) => {
                         </span>
 
                         <p className="me-event-description">
-                          {event.description}
-                        </p>
+  {event.description.split(/(?<=[.!?])\s+/)[0]}
+  {event.description.split(/(?<=[.!?])\s+/).length > 1 && "..."}
+</p>
 
                         <div className="me-event-meta">
                           <span className="me-meta-item">
@@ -850,19 +914,25 @@ const handleCancelRegistration = (eventId: number) => {
 
     <span
       className={`me-status ${
-        event.status === "Pending"
-          ? "pending"
-          : event.status === "Cancelled"
-            ? "cancelled"
-            : ""
-      }`}
+  event.status === "Pending"
+    ? "pending"
+    : event.status === "Rejected"
+      ? "rejected"
+      : event.status === "Cancelled"
+        ? "cancelled"
+        : ""
+}`}
     >
       {event.status === "Confirmed" ? (
-        <CheckCircle2 size={12} />
-      ) : (
-        <ClockAlert size={12} />
-      )}
-      {event.status}
+  <CheckCircle2 size={12} />
+) : event.status === "Rejected" ||
+  event.status === "Cancelled" ? (
+  <X size={12} />
+) : (
+  <ClockAlert size={12} />
+)}
+
+{event.status}
     </span>
   </div>
 
@@ -877,14 +947,14 @@ const handleCancelRegistration = (eventId: number) => {
   </button>
 
   {event.status === "Pending" && (
-    <button
-      type="button"
-      onClick={() => handleCancelRegistration(event.id)}
-      className="me-cancel"
-    >
-      Cancel Registration
-    </button>
-  )}
+  <button
+    type="button"
+    onClick={() => setCancelEventId(event.id)}
+    className="me-cancel"
+  >
+    Cancel Registration
+  </button>
+)}
 </div>
 
                     </div>
@@ -907,9 +977,18 @@ const handleCancelRegistration = (eventId: number) => {
 
       <VolunteerAIChat />
 
+      <EventDetailsModal
+  event={
+    selectedEvent
+      ? { ...selectedEvent, id: selectedEvent.id }
+      : null
+  }
+  onClose={() => setSelectedEvent(null)}
+/>
+
       {selectedQrEvent && (
   <div
-    className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+    className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-900/60 p-2 backdrop-blur-sm sm:p-4"
     onClick={(e) => {
       if (e.target === e.currentTarget) {
         setSelectedQrEvent(null);
@@ -919,7 +998,7 @@ const handleCancelRegistration = (eventId: number) => {
     <div
       role="dialog"
       aria-modal="true"
-      className="relative w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl sm:p-8"
+      className="relative my-auto w-full max-w-[320px] rounded-2xl bg-white p-4 text-center shadow-2xl sm:max-w-md sm:p-8"
     >
       <button
         type="button"
@@ -934,7 +1013,7 @@ const handleCancelRegistration = (eventId: number) => {
         <QrCode size={30} />
       </div>
 
-      <h2 className="text-2xl font-extrabold text-slate-900">
+      <h2 className="text-lg font-extrabold text-slate-900 sm:text-2xl">
         Your Registration QR Code
       </h2>
 
@@ -942,7 +1021,7 @@ const handleCancelRegistration = (eventId: number) => {
         Keep this QR code for your event registration.
       </p>
 
-      <div className="mx-auto mt-6 flex w-fit items-center justify-center rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="mx-auto mt-4 flex w-fit items-center justify-center rounded-xl border border-slate-200 bg-white p-2 sm:mt-6 sm:rounded-2xl sm:p-4">
         <QRCodeSVG
           value={JSON.stringify({
             registrationId: `UV-REG-${selectedQrEvent.id}`,
@@ -950,7 +1029,7 @@ const handleCancelRegistration = (eventId: number) => {
             date: selectedQrEvent.date,
             location: selectedQrEvent.location,
           })}
-          size={210}
+          size={180}
           level="H"
           includeMargin
         />
@@ -991,6 +1070,48 @@ const handleCancelRegistration = (eventId: number) => {
       >
         Close
       </button>
+    </div>
+  </div>
+)}
+{cancelEventId && (
+  <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
+    >
+      <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-rose-100 text-rose-600">
+        <X size={24} />
+      </div>
+
+      <h2 className="text-center text-xl font-bold text-slate-900">
+        Cancel Registration?
+      </h2>
+
+      <p className="mt-2 text-center text-sm leading-6 text-slate-500">
+        Are you sure you want to cancel this registration? This action
+        cannot be undone.
+      </p>
+
+      <div className="mt-6 flex gap-3">
+        <button
+          type="button"
+          disabled={cancelling}
+          onClick={() => setCancelEventId(null)}
+          className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 disabled:opacity-50"
+        >
+          Keep Registration
+        </button>
+
+        <button
+          type="button"
+          disabled={cancelling}
+          onClick={handleCancelRegistration}
+          className="flex-1 rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+        >
+          {cancelling ? "Cancelling..." : "Yes, Cancel"}
+        </button>
+      </div>
     </div>
   </div>
 )}

@@ -45,47 +45,48 @@ export default function VolunteerProfilePage() {
   const [profile, setProfile] =
     useState<VolunteerProfile>(defaultProfile);
 
-  useEffect(() => {
+useEffect(() => {
+  let cancelled = false;
+
+  async function loadProfile() {
     try {
-      const saved = localStorage.getItem("volunteerProfileData");
-      const image =
-        localStorage.getItem("volunteerProfileImage") || "";
+      const response = await fetch("/api/volunteer/profile", {
+        cache: "no-store",
+      });
 
-      if (saved) {
-        const data = JSON.parse(saved);
+      const result = await response.json();
 
-        setProfile({
-          ...defaultProfile,
-          ...data,
-          skills: Array.isArray(data.skills)
-            ? data.skills
-            : String(
-                data.skills || defaultProfile.skills.join(", ")
-              )
-                .split(",")
-                .map((v: string) => v.trim())
-                .filter(Boolean),
-          interests: Array.isArray(data.interests)
-            ? data.interests
-            : String(
-                data.interests ||
-                  defaultProfile.interests.join(", ")
-              )
-                .split(",")
-                .map((v: string) => v.trim())
-                .filter(Boolean),
-          profileImage: image,
-        });
-      } else {
-        setProfile((current) => ({
-          ...current,
-          profileImage: image,
-        }));
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to load profile.");
       }
-    } catch {
-      // Invalid browser data হলে default profile দেখাবে।
+
+      if (cancelled) return;
+
+      const data = result.profile;
+
+      setProfile({
+        name: data.name || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        location: data.location || "",
+        bio: data.bio || "",
+        skills: Array.isArray(data.skills) ? data.skills : [],
+        interests: Array.isArray(data.interests)
+          ? data.interests
+          : [],
+        profileImage: data.profileImage || "",
+      });
+    } catch (error) {
+      console.error("Profile load error:", error);
     }
-  }, []);
+  }
+
+  loadProfile();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
 
   const initials =
     profile.name
@@ -99,13 +100,14 @@ export default function VolunteerProfilePage() {
   return (
     <div className="min-h-screen bg-[#f4f7fb] text-[#17243b]">
       <VolunteerSidebar
-        activePage="My Profile"
-        sidebarOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        userName={profile.name}
-        userRole="Volunteer"
-        avatarText={initials}
-      />
+  activePage="My Profile"
+  sidebarOpen={sidebarOpen}
+  onClose={() => setSidebarOpen(false)}
+  userName={profile.name}
+  userRole="Volunteer"
+  avatarText={initials}
+  avatarImage={profile.profileImage}
+/>
 
       <main className="min-h-screen lg:ml-[246px]">
         <header className="sticky top-0 z-20 flex h-[67px] items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur sm:px-7">

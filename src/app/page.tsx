@@ -21,39 +21,29 @@ import {
   Send,
 } from "lucide-react";
 
-const events = [
+type EventItem = {
+  _id: string;
+  title: string;
+  category: string;
+  description: string;
+  date: string;
+  location: string;
+  capacity: number;
+  status?: string;
+};
+
+const eventStyles = [
   {
-    category: "Environment",
-    title: "Green Earth, Green Future",
-    description:
-      "Join our community to plant trees and create a cleaner, greener future for the next generation.",
-    date: "October 25, 2026",
-    location: "Chattogram, Bangladesh",
-    volunteers: "12 / 30",
     icon: TreePine,
     color: "bg-emerald-100 text-emerald-700",
     accent: "from-emerald-100 to-lime-50",
   },
   {
-    category: "Education",
-    title: "Share the Gift of Learning",
-    description:
-      "Help children discover their potential through reading sessions, mentoring, and creative activities.",
-    date: "October 28, 2026",
-    location: "Dhaka, Bangladesh",
-    volunteers: "18 / 25",
     icon: BookOpen,
     color: "bg-sky-100 text-sky-700",
     accent: "from-sky-100 to-indigo-50",
   },
   {
-    category: "Community",
-    title: "Care Beyond Boundaries",
-    description:
-      "Support a local community initiative focused on essential supplies and meaningful human connections.",
-    date: "November 2, 2026",
-    location: "Cumilla, Bangladesh",
-    volunteers: "9 / 20",
     icon: HeartHandshake,
     color: "bg-rose-100 text-rose-700",
     accent: "from-rose-100 to-orange-50",
@@ -68,6 +58,53 @@ const categories = [
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [events, setEvents] = useState<EventItem[]>([]);
+const [eventsLoading, setEventsLoading] = useState(true);
+
+useEffect(() => {
+  let cancelled = false;
+
+  async function fetchEvents() {
+    try {
+      const response = await fetch("/api/events", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch events");
+      }
+
+      const data = await response.json();
+
+      if (!cancelled && data.success && Array.isArray(data.events)) {
+        const publishedEvents = data.events
+          .filter(
+            (event: EventItem) => event.status === "Published"
+          )
+          .sort(
+            (a: EventItem, b: EventItem) =>
+              new Date(a.date).getTime() -
+              new Date(b.date).getTime()
+          )
+          .slice(0, 3);
+
+        setEvents(publishedEvents);
+      }
+    } catch (error) {
+      console.error("Error loading homepage events:", error);
+    } finally {
+      if (!cancelled) {
+        setEventsLoading(false);
+      }
+    }
+  }
+
+  fetchEvents();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
 
   useEffect(() => {
     const elements = document.querySelectorAll(".scroll-reveal");
@@ -542,26 +579,36 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {events.map((event) => {
-              const Icon = event.icon;
+          {eventsLoading ? (
+  <p className="mt-10 text-center text-slate-500">
+    Loading events...
+  </p>
+) : events.length === 0 ? (
+  <p className="mt-10 rounded-2xl border border-dashed border-emerald-200 bg-white p-8 text-center text-slate-500">
+    No upcoming events available right now.
+  </p>
+) : (
+  <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {events.map((event, index) => {
+  const style = eventStyles[index % eventStyles.length];
+  const Icon = style.icon;
 
               return (
                 <article
-                  key={event.title}
+                  key={event._id}
                   className="card-hover overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/5"
                 >
                   <div
-                    className={`flex h-44 items-center justify-center bg-gradient-to-br ${event.accent}`}
+                    className={`flex h-44 items-center justify-center bg-gradient-to-br ${style.accent}`}
                   >
-                    <div className={`rounded-3xl p-6 ${event.color}`}>
+                    <div className={`rounded-3xl p-6 ${style.color}`}>
                       <Icon size={49} strokeWidth={1.6} />
                     </div>
                   </div>
 
                   <div className="p-6">
                     <span
-                      className={`rounded-full px-3 py-1.5 text-xs font-bold ${event.color}`}
+                      className={`rounded-full px-3 py-1.5 text-xs font-bold ${style.color}`}
                     >
                       {event.category}
                     </span>
@@ -580,7 +627,13 @@ export default function Home() {
                           size={16}
                           className="text-emerald-600"
                         />
-                        {event.date}
+                        {event.date
+  ? new Date(event.date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  : "Date not available"}
                       </p>
 
                       <p className="flex items-center gap-2">
@@ -596,7 +649,7 @@ export default function Home() {
                           size={16}
                           className="text-emerald-600"
                         />
-                        {event.volunteers} volunteers
+                        {event.capacity} volunteer capacity
                       </p>
                     </div>
 
@@ -612,6 +665,7 @@ export default function Home() {
               );
             })}
           </div>
+          )}
         </div>
       </section>
 

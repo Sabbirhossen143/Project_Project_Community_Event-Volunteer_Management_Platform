@@ -2,7 +2,7 @@
 
 import OrganizerSidebar from "@/components/OrganizerSidebar";
 import OrganizerAIChat from "@/components/Organizer/OrganizerAIChat";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -25,7 +25,7 @@ import {
 type VolunteerStatus = "Pending" | "Confirmed" | "Rejected";
 
 type Volunteer = {
-  id: number;
+  id: string;
   name: string;
   email: string;
   initials: string;
@@ -34,59 +34,6 @@ type Volunteer = {
   status: VolunteerStatus;
   color: string;
 };
-
-const initialVolunteers: Volunteer[] = [
-  {
-    id: 1,
-    name: "Ayesha Rahman",
-    email: "ayesha@example.com",
-    initials: "AR",
-    event: "Tree Plantation Drive",
-    date: "Nov 15, 2026",
-    status: "Confirmed",
-    color: "#dcfce7",
-  },
-  {
-    id: 2,
-    name: "Tanvir Hasan",
-    email: "tanvir@example.com",
-    initials: "TH",
-    event: "Digital Literacy Workshop",
-    date: "Nov 22, 2026",
-    status: "Pending",
-    color: "#dbeafe",
-  },
-  {
-    id: 3,
-    name: "Nusrat Jahan",
-    email: "nusrat@example.com",
-    initials: "NJ",
-    event: "Free Health Camp",
-    date: "Nov 30, 2026",
-    status: "Confirmed",
-    color: "#f3e8ff",
-  },
-  {
-    id: 4,
-    name: "Rafi Ahmed",
-    email: "rafi@example.com",
-    initials: "RA",
-    event: "Cloth Donation Drive",
-    date: "Dec 05, 2026",
-    status: "Confirmed",
-    color: "#ffedd5",
-  },
-  {
-    id: 5,
-    name: "Sadia Islam",
-    email: "sadia@example.com",
-    initials: "SI",
-    event: "Tree Plantation Drive",
-    date: "Nov 15, 2026",
-    status: "Pending",
-    color: "#fce7f3",
-  },
-];
 
 const navItems = [
   { label: "Dashboard", href: "/organizer/dashboard", icon: LayoutDashboard },
@@ -97,14 +44,89 @@ const navItems = [
 ];
 
 export default function EventVolunteersPage() {
-  const [volunteers, setVolunteers] =
-    useState<Volunteer[]>(initialVolunteers);
+  const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [search, setSearch] = useState("");
   const [eventFilter, setEventFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Volunteer | null>(null);
+
+  
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  async function loadRegistrations() {
+    try {
+      const response = await fetch("/api/registrations", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to load registrations.");
+      }
+
+      const colors = [
+        "#dcfce7",
+        "#dbeafe",
+        "#f3e8ff",
+        "#ffedd5",
+        "#fce7f3",
+      ];
+
+      const mapped: Volunteer[] = (data.registrations ?? []).map(
+        (r: {
+          _id: string;
+          volunteerName: string;
+          volunteerEmail: string;
+          eventTitle: string;
+          eventDate: string;
+          status: VolunteerStatus;
+        }, index: number) => {
+          const name = r.volunteerName || "Unknown Volunteer";
+
+          return {
+            id: String(r._id),
+            name,
+            email: r.volunteerEmail || "",
+            initials: name
+              .split(/\s+/)
+              .map((part: string) => part[0] || "")
+              .join("")
+              .slice(0, 2)
+              .toUpperCase(),
+            event: r.eventTitle || "Untitled Event",
+            date: r.eventDate
+              ? new Date(r.eventDate).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "2-digit",
+                  year: "numeric",
+                })
+              : "—",
+            status: r.status || "Pending",
+            color: colors[index % colors.length],
+          };
+        }
+      );
+
+      setVolunteers(mapped);
+    } catch (error) {
+      console.error("Load registrations error:", error);
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Could not load registrations."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  loadRegistrations();
+}, []);
+
 
   const eventNames = Array.from(
     new Set(volunteers.map((volunteer) => volunteer.event))
@@ -139,48 +161,85 @@ export default function EventVolunteersPage() {
   (volunteer) => volunteer.status === "Rejected"
 ).length;
 
- function updateStatus(
-  id: number,
+ 
+async function updateStatus(
+  id: string,
   decision: "Confirmed" | "Rejected"
 ) {
   const volunteer = volunteers.find((item) => item.id === id);
 
-  // Already decided হলে আর পরিবর্তন করা যাবে না
-  if (!volunteer || volunteer.status !== "Pending") {
-    return;
+  if (!volunteer || volunteer.status !== "Pending") return;
+
+  try {
+    const response = await fetch("/api/registrations", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        registrationId: id,
+        status: decision,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to update status.");
+    }
+
+    setVolunteers((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, status: decision } : item
+      )
+    );
+
+    setNotice(
+      decision === "Confirmed"
+        ? "Volunteer registration confirmed successfully."
+        : "Volunteer registration rejected."
+    );
+  } catch (error) {
+    setNotice(
+      error instanceof Error ? error.message : "Status update failed."
+    );
   }
-
-  setVolunteers((current) =>
-    current.map((item) =>
-      item.id === id && item.status === "Pending"
-        ? { ...item, status: decision }
-        : item
-    )
-  );
-
-  setNotice(
-    decision === "Confirmed"
-      ? "Volunteer registration confirmed successfully."
-      : "Volunteer registration rejected."
-  );
 }
 
-  function removeVolunteer(id: number) {
+function removeVolunteer(id: string) {
   const volunteer = volunteers.find((item) => item.id === id);
   if (!volunteer) return;
 
   setPendingDelete(volunteer);
 }
 
-function confirmDelete() {
+async function confirmDelete() {
   if (!pendingDelete) return;
 
-  setVolunteers((current) =>
-    current.filter((item) => item.id !== pendingDelete.id)
-  );
+  try {
+    const response = await fetch("/api/registrations", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        registrationId: pendingDelete.id,
+      }),
+    });
 
-  setNotice(`${pendingDelete.name} has been removed successfully.`);
-  setPendingDelete(null);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to delete registration.");
+    }
+
+    setVolunteers((current) =>
+      current.filter((item) => item.id !== pendingDelete.id)
+    );
+
+    setNotice(`${pendingDelete.name} has been removed successfully.`);
+    setPendingDelete(null);
+  } catch (error) {
+    setNotice(
+      error instanceof Error ? error.message : "Delete failed."
+    );
+  }
 }
 
   return (
@@ -380,23 +439,77 @@ function confirmDelete() {
         .panel-title { margin: 0; font-size: 14px; font-weight: 800; }
 
         .filters {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 9px;
-          padding: 0 18px 17px;
-        }
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0 18px 20px;
+}
 
-        .filters select {
-          max-width: 100%;
-          min-height: 36px;
-          padding: 0 11px;
-          border: 1px solid #e1e8f0;
-          border-radius: 8px;
-          background: white;
-          color: #607089;
-          font-size: 11px;
-        }
+.filters select {
+  appearance: none;
+  -webkit-appearance: none;
 
+  min-width: 180px;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0 42px 0 15px;
+
+  border: 1px solid #dfe9e4;
+  border-radius: 12px;
+
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230d9669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+
+  color: #33465f;
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+  outline: none;
+
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.025);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.filters select:hover {
+  border-color: #9bdcc2;
+  background-color: #fcfffd;
+}
+
+.filters select:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
+}
+
+.filters select option {
+  padding: 12px;
+  background: #ffffff;
+  color: #33465f;
+  font-size: 13px;
+}
+
+.filters select option:checked {
+  background: #e7f8ef;
+  color: #087b56;
+}
+
+@media (max-width: 600px) {
+  .filters {
+    gap: 10px;
+  }
+
+  .filters select {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+}
         .table-wrap { width: 100%; overflow-x: auto; }
 
         table {
@@ -844,7 +957,7 @@ function confirmDelete() {
           title="Confirm registration"
         >
           <CheckCircle2 size={14} />
-          Confirm
+          
         </button>
 
         <button
@@ -860,7 +973,7 @@ function confirmDelete() {
           title="Reject registration"
         >
           <X size={14} />
-          Reject
+          
         </button>
       </>
     ) : (
@@ -895,7 +1008,15 @@ function confirmDelete() {
                     </tr>
                   ))}
 
-                  {filteredVolunteers.length === 0 && (
+                  {loading && (
+  <tr>
+    <td colSpan={5} className="empty">
+      Loading registrations...
+    </td>
+  </tr>
+)}
+
+                  {!loading && filteredVolunteers.length === 0 && (
                     <tr>
                       <td colSpan={5} className="empty">
                         No volunteers found. Try another search or filter.

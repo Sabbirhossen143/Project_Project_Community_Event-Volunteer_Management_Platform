@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { useSession } from "next-auth/react";
 import VolunteerSidebar from "@/components/VolunteerSidebar";
 import VolunteerAIChat from "@/components/volunteer/VolunteerAIChat";
 import EventDetailsModal, {
@@ -24,7 +25,7 @@ import {
 
 
 type EventItem = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   date: string;
@@ -34,81 +35,6 @@ type EventItem = {
   color: string;
   textColor: string;
 };
-
-const events: EventItem[] = [
-  {
-    id: 1,
-    title: "Tree Plantation Drive",
-    category: "Environment",
-    date: "Nov 15, 2026",
-    time: "9:00 AM",
-    location: "Dhaka University",
-    description:
-      "Help make our communities greener by planting trees and promoting environmental awareness.",
-    color: "#dcfce7",
-    textColor: "#15803d",
-  },
-  {
-    id: 2,
-    title: "Digital Literacy Workshop",
-    category: "Education",
-    date: "Nov 22, 2026",
-    time: "10:00 AM",
-    location: "Dhanmondi, Dhaka",
-    description:
-      "Help people develop essential digital skills and become more confident with technology.",
-    color: "#dbeafe",
-    textColor: "#1d4ed8",
-  },
-  {
-    id: 3,
-    title: "Community Health Camp",
-    category: "Healthcare",
-    date: "Nov 30, 2026",
-    time: "8:30 AM",
-    location: "Mirpur, Dhaka",
-    description:
-      "Support a community health initiative by helping organize activities and assist visitors.",
-    color: "#f3e8ff",
-    textColor: "#7e22ce",
-  },
-  {
-    id: 4,
-    title: "Community Food Distribution",
-    category: "Community",
-    date: "Dec 5, 2026",
-    time: "8:00 AM",
-    location: "Uttara, Dhaka",
-    description:
-      "Join volunteers in organizing and distributing food packages to local families.",
-    color: "#ffedd5",
-    textColor: "#c2410c",
-  },
-  {
-    id: 5,
-    title: "Winter Clothes Collection",
-    category: "Community",
-    date: "Dec 10, 2026",
-    time: "10:00 AM",
-    location: "Mohammadpur, Dhaka",
-    description:
-      "Collect, sort and prepare warm clothing for people who need support during winter.",
-    color: "#fce7f3",
-    textColor: "#be185d",
-  },
-  {
-    id: 6,
-    title: "Children's Learning Day",
-    category: "Education",
-    date: "Dec 15, 2026",
-    time: "9:30 AM",
-    location: "Uttara, Dhaka",
-    description:
-      "Spend a meaningful day helping children learn through educational games and activities.",
-    color: "#fef3c7",
-    textColor: "#a16207",
-  },
-];
 
 const categories = [
   "All Events",
@@ -123,8 +49,63 @@ export default function BrowseEventsPage() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] =
     useState("All Events");
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState("");
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const { data: session } = useSession();
 
-  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+  useEffect(() => {
+  const fetchEvents = async () => {
+    try {
+      setEventsLoading(true);
+      setEventsError("");
+
+      const response = await fetch("/api/events");
+
+      if (!response.ok) {
+        throw new Error("Failed to load events.");
+      }
+
+      const data = await response.json();
+
+      const eventList = Array.isArray(data)
+        ? data
+        : data.events ?? [];
+
+      const formattedEvents: EventItem[] = eventList.map(
+        (event: any) => ({
+          id: String(event._id ?? event.id),
+          title: event.title,
+          category: event.category ?? "Community",
+          date: event.date ?? "",
+          time: event.time ?? event.startTime ?? "",
+          location: event.location ?? "",
+          description: event.description ?? "",
+          color: "#dcfce7",
+          textColor: "#15803d",
+        })
+      );
+
+      setEvents(formattedEvents);
+    } catch (error) {
+      setEventsError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load events."
+      );
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
+  fetchEvents();
+}, []);
+
+useEffect(() => {
+  setFullName(session?.user?.name ?? "");
+  setEmail(session?.user?.email ?? "");
+}, [session]);
 
   useEffect(() => {
   const saved = localStorage.getItem("volunteerFavorites");
@@ -138,7 +119,7 @@ export default function BrowseEventsPage() {
   }
 }, []);
 
-const toggleFavorite = (eventId: number) => {
+const toggleFavorite = (eventId: string) => {
   setFavoriteIds((previous) => {
     const updated = previous.includes(eventId)
       ? previous.filter((id) => id !== eventId)
@@ -177,6 +158,58 @@ useEffect(() => {
   const [motivation, setMotivation] = useState("");
   const [registrationSubmitted, setRegistrationSubmitted] =
     useState(false);
+  const [registrationLoading, setRegistrationLoading] = useState(false);
+const [registrationError, setRegistrationError] = useState("");
+const [fullName, setFullName] = useState("");
+const [email, setEmail] = useState("");
+const [phone, setPhone] = useState("");
+const [registrationId, setRegistrationId] = useState("");
+
+const handleRegistrationSubmit = async (
+  e: React.FormEvent<HTMLFormElement>
+) => {
+  e.preventDefault();
+
+  if (!registerEvent) return;
+
+  try {
+    setRegistrationLoading(true);
+    setRegistrationError("");
+
+    const response = await fetch("/api/registrations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        eventId: registerEvent.id,
+        fullName,
+        email,
+        phone,
+        motivation,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Registration failed."
+      );
+    }
+
+    setRegistrationId(data.registrationId);
+    setRegistrationSubmitted(true);
+  } catch (error) {
+    setRegistrationError(
+      error instanceof Error
+        ? error.message
+        : "Something went wrong."
+    );
+  } finally {
+    setRegistrationLoading(false);
+  }
+};
 
   const filteredEvents = events.filter((event) => {
     const matchesCategory =
@@ -679,6 +712,12 @@ useEffect(() => {
             ))}
           </div>
 
+          {eventsLoading && <p>Loading events...</p>}
+
+          {eventsError && (
+           <p className="text-red-600">{eventsError}</p>
+          ) }
+
           <div className="browse-grid">
             {filteredEvents.length > 0 ? (
               filteredEvents.map((event) => (
@@ -834,14 +873,14 @@ useEffect(() => {
       <div className="min-w-0">
         <p className="text-[11px] text-slate-500">Name</p>
         <p className="mt-1 truncate text-xs font-bold text-slate-900">
-          Sarah Ahmed
+          {fullName}
         </p>
       </div>
 
       <div className="min-w-0">
         <p className="text-[11px] text-slate-500">Email</p>
         <p className="mt-1 truncate text-xs font-bold text-slate-900">
-          sarah.ahmed@example.com
+          {email}
         </p>
       </div>
     </div>
@@ -858,10 +897,10 @@ useEffect(() => {
       <div className="mt-3 flex justify-center">
         <QRCodeSVG
           value={JSON.stringify({
-            registrationId: `UV-REG-${registerEvent.id}`,
-            eventId: registerEvent.id,
-            eventName: registerEvent.title,
-          })}
+  registrationId,
+  eventId: registerEvent.id,
+  eventName: registerEvent.title,
+})}
           size={125}
           level="H"
           includeMargin
@@ -880,7 +919,7 @@ useEffect(() => {
             Registration ID
           </span>
           <span className="font-mono text-xs font-bold text-emerald-700">
-            UV-REG-{registerEvent.id}
+            {registrationId}
           </span>
         </div>
       </div>
@@ -913,22 +952,22 @@ useEffect(() => {
                 </p>
 
                 <form
-                  className="mt-6 space-y-4"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    setRegistrationSubmitted(true);
-                  }}
-                >
+  className="mt-6 space-y-4"
+  onSubmit={handleRegistrationSubmit}
+>
                   <div>
                     <label className="mb-2 block text-sm font-bold text-slate-700">
                       Full Name
                     </label>
 
                     <input
-                      value="Sarah Ahmed"
-                      readOnly
-                      className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
-                    />
+  type="text"
+  value={fullName}
+  readOnly
+  required
+  placeholder="Your registered name"
+  className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
+/>
                   </div>
 
                   <div>
@@ -937,11 +976,13 @@ useEffect(() => {
                     </label>
 
                     <input
-                      type="email"
-                      value="sarah.ahmed@example.com"
-                      readOnly
-                      className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
-                    />
+  type="email"
+  value={email}
+  readOnly
+  required
+  placeholder="Your registered email"
+  className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
+/>
                   </div>
 
                   <div>
@@ -951,9 +992,10 @@ useEffect(() => {
 
                     <input
                       type="tel"
-                      value="01700000000"
-                      readOnly
-                      className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Enter your phone number"
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
                     />
                   </div>
 
@@ -976,13 +1018,22 @@ useEffect(() => {
                     />
                   </div>
 
+                  {registrationError && (
+  <p className="text-sm text-red-600">
+    {registrationError}
+  </p>
+)}
+
                   <button
-                    type="submit"
-                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 text-sm font-extrabold text-white hover:bg-emerald-800"
-                  >
-                    Submit Registration
-                    <HandHeart size={17} />
-                  </button>
+  type="submit"
+  disabled={registrationLoading}
+  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 text-sm font-extrabold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+>
+  {registrationLoading
+    ? "Submitting..."
+    : "Submit Registration"}
+  <HandHeart size={17} />
+</button>
 
                   <p className="text-center text-xs leading-5 text-slate-400">
                     Your registration requires organizer approval.

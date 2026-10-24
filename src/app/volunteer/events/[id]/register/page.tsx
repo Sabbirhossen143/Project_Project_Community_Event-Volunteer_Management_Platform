@@ -13,80 +13,6 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-const events = [
-  {
-    id: 1,
-    title: "Tree Plantation Drive",
-    category: "Environment",
-    date: "Nov 15, 2026",
-    time: "9:00 AM",
-    location: "Dhaka University",
-    description:
-      "Help make our communities greener by planting trees and promoting environmental awareness.",
-    color: "#dcfce7",
-    textColor: "#15803d",
-  },
-  {
-    id: 2,
-    title: "Digital Literacy Workshop",
-    category: "Education",
-    date: "Nov 22, 2026",
-    time: "10:00 AM",
-    location: "Dhanmondi, Dhaka",
-    description:
-      "Help people develop essential digital skills and become more confident with technology.",
-    color: "#dbeafe",
-    textColor: "#1d4ed8",
-  },
-  {
-    id: 3,
-    title: "Community Health Camp",
-    category: "Healthcare",
-    date: "Nov 30, 2026",
-    time: "8:30 AM",
-    location: "Mirpur, Dhaka",
-    description:
-      "Support a community health initiative by helping organize activities and assist visitors.",
-    color: "#f3e8ff",
-    textColor: "#7e22ce",
-  },
-  {
-    id: 4,
-    title: "Community Food Distribution",
-    category: "Community",
-    date: "Dec 5, 2026",
-    time: "8:00 AM",
-    location: "Uttara, Dhaka",
-    description:
-      "Join volunteers in organizing and distributing food packages to local families.",
-    color: "#ffedd5",
-    textColor: "#c2410c",
-  },
-  {
-    id: 5,
-    title: "Winter Clothes Collection",
-    category: "Community",
-    date: "Dec 10, 2026",
-    time: "10:00 AM",
-    location: "Mohammadpur, Dhaka",
-    description:
-      "Collect, sort and prepare warm clothing for people who need support during winter.",
-    color: "#fce7f3",
-    textColor: "#be185d",
-  },
-  {
-    id: 6,
-    title: "Children's Learning Day",
-    category: "Education",
-    date: "Dec 15, 2026",
-    time: "9:30 AM",
-    location: "Uttara, Dhaka",
-    description:
-      "Spend a meaningful day helping children learn through educational games and activities.",
-    color: "#fef3c7",
-    textColor: "#a16207",
-  },
-];
 
 export default function EventRegistrationPage() {
   const params = useParams<{ id: string }>();
@@ -100,6 +26,8 @@ export default function EventRegistrationPage() {
   const [phone, setPhone] = useState("");
   const [motivation, setMotivation] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   if (!event) {
     return (
@@ -122,13 +50,44 @@ export default function EventRegistrationPage() {
     );
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
 
-    // Demo only: connect this form to your backend/API
-    // to save a real pending registration.
+  setLoading(true);
+  setError("");
+
+  try {
+    const response = await fetch("/api/registrations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        eventId: params.id,
+        fullName,
+        email,
+        phone,
+        motivation,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Registration failed.");
+    }
+
     setSubmitted(true);
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Something went wrong."
+    );
+  } finally {
+    setLoading(false);
   }
+}
 
   return (
     <main className="min-h-screen bg-[#f4f7fb] px-4 py-8 sm:px-6">
@@ -227,9 +186,8 @@ export default function EventRegistrationPage() {
                 </h2>
 
                 <p className="mt-3 max-w-sm text-sm leading-7 text-slate-500">
-                  This is a frontend demo. Your registration has not been
-                  saved or sent to the organizer yet. Connect the backend
-                  to complete the application process.
+                  Your registration has been submitted successfully.
+                  Your application is Pending until the organizer reviews it.
                 </p>
 
                 <button
@@ -253,6 +211,12 @@ export default function EventRegistrationPage() {
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   Provide your details to apply as a volunteer for this event.
                 </p>
+
+                {error && (
+                  <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                  {error}
+                   </p>
+                 )}
 
                 <form onSubmit={handleSubmit} className="mt-7 space-y-5">
                   <div>
@@ -327,12 +291,13 @@ export default function EventRegistrationPage() {
                   </div>
 
                   <button
-                    type="submit"
-                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 text-sm font-extrabold text-white transition hover:bg-emerald-800"
-                  >
-                    Submit Registration
-                    <HandHeart size={17} />
-                  </button>
+  type="submit"
+  disabled={loading}
+  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 text-sm font-extrabold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+>
+  {loading ? "Submitting..." : "Submit Registration"}
+  {!loading && <HandHeart size={17} />}
+</button>
 
                   <p className="text-center text-xs leading-5 text-slate-400">
                     Your request will need organizer approval before your

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import OrganizerSidebar from "@/components/OrganizerSidebar";
 import {
@@ -47,8 +47,36 @@ const initialProfile: OrganizerProfile = {
 export default function OrganizerProfilePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Demo data; পরে API response দিয়ে এই state পূরণ করবে।
-  const [profile] = useState<OrganizerProfile>(initialProfile);
+  const [profile, setProfile] =
+  useState<OrganizerProfile>(initialProfile);
+
+
+useEffect(() => {
+  async function loadProfile() {
+    try {
+      const response = await fetch("/api/organizer/profile", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to load profile.");
+      }
+
+      setProfile((current) => ({
+        ...current,
+        ...data.profile,
+        profileImage: data.profile.profileImage || null,
+      }));
+    } catch (error) {
+      console.error("Load organizer profile error:", error);
+    }
+  }
+
+  loadProfile();
+}, []);
+
 
   return (
     <div className="profile-shell">

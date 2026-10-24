@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import OrganizerSidebar from "@/components/OrganizerSidebar";
@@ -34,6 +34,39 @@ export default function EditOrganizerProfilePage() {
       "Passionate about bringing people together, supporting volunteers, and creating meaningful community impact.",
     profileImage: "",
   });
+
+  
+useEffect(() => {
+  async function loadProfile() {
+    try {
+      const response = await fetch("/api/organizer/profile", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to load profile.");
+      }
+
+      setForm((current) => ({
+        ...current,
+        ...data.profile,
+        profileImage: data.profile.profileImage ?? "",
+      }));
+    } catch (error) {
+      console.error("Load profile error:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to load profile."
+      );
+    }
+  }
+
+  loadProfile();
+}, []);
+
 
   function updateField(
     field: keyof typeof form,
@@ -73,33 +106,46 @@ export default function EditOrganizerProfilePage() {
     reader.readAsDataURL(file);
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  
+async function handleSubmit(
+  event: React.FormEvent<HTMLFormElement>
+) {
+  event.preventDefault();
+  setSavedMessage(false);
 
-    /*
-      BACKEND CONNECTION:
-      Later send form fields and the selected image to your API.
-      Example:
-      const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("email", form.email);
-      formData.append("phone", form.phone);
-      formData.append("location", form.location);
-      formData.append("about", form.about);
-      formData.append("profileImage", selectedImageFile);
+  try {
+    const response = await fetch("/api/organizer/profile", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(form),
+    });
 
-      await fetch("/api/organizer/profile", {
-        method: "PATCH",
-        body: formData,
-      });
+    const data = await response.json();
 
-      The image should be uploaded to the backend/storage.
-      Store its returned URL in the user's profile record.
-    */
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to update profile.");
+    }
 
-    // Demo only: this does not save data to the server.
-    setSavedMessage(true);
+    setForm((current) => ({
+      ...current,
+      ...data.profile,
+    }));
+
+    router.push("/organizer/profile");
+    router.refresh();
+  } catch (error) {
+    console.error("Save profile error:", error);
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Failed to save profile. Please try again."
+    );
   }
+}
+
 
   return (
     <div className="edit-profile-shell">

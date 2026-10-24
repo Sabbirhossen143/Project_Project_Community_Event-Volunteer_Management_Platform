@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import Footer from "@/components/Footer";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   CalendarDays,
@@ -20,98 +20,39 @@ import {
   Share2,
 } from "lucide-react";
 
-const events = [
-  {
-    id: 1,
-    category: "Environment",
-    title: "Green Earth, Green Future",
-    description:
-      "Join our community to plant trees and create a cleaner, greener future for the next generation.",
-    date: "October 25, 2026",
-    time: "9:00 AM - 12:00 PM",
-    location: "Chattogram, Bangladesh",
-    volunteers: 12,
-    capacity: 30,
+type EventItem = {
+  id: string;
+  category: string;
+  title: string;
+  description: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  capacity: number;
+  volunteers?: number;
+  status?: string;
+};
+
+const eventStyles = {
+  Environment: {
     icon: TreePine,
     color: "bg-emerald-100 text-emerald-700",
     accent: "from-emerald-100 to-lime-50",
   },
-  {
-    id: 2,
-    category: "Education",
-    title: "Share the Gift of Learning",
-    description:
-      "Help children discover their potential through reading sessions, mentoring, and creative activities.",
-    date: "October 28, 2026",
-    time: "10:00 AM - 1:00 PM",
-    location: "Dhaka, Bangladesh",
-    volunteers: 18,
-    capacity: 25,
+  Education: {
     icon: BookOpen,
     color: "bg-sky-100 text-sky-700",
     accent: "from-sky-100 to-indigo-50",
   },
-  {
-    id: 3,
-    category: "Community",
-    title: "Care Beyond Boundaries",
-    description:
-      "Support a local community initiative focused on essential supplies and meaningful human connections.",
-    date: "November 2, 2026",
-    time: "9:30 AM - 12:30 PM",
-    location: "Cumilla, Bangladesh",
-    volunteers: 9,
-    capacity: 20,
+  Community: {
     icon: HeartHandshake,
     color: "bg-rose-100 text-rose-700",
     accent: "from-rose-100 to-orange-50",
   },
-  {
-    id: 4,
-    category: "Environment",
-    title: "Clean City Campaign",
-    description:
-      "Work together to clean public spaces and inspire people to keep our neighborhoods beautiful.",
-    date: "November 8, 2026",
-    time: "8:00 AM - 11:00 AM",
-    location: "Chattogram, Bangladesh",
-    volunteers: 22,
-    capacity: 40,
-    icon: TreePine,
-    color: "bg-emerald-100 text-emerald-700",
-    accent: "from-green-100 to-teal-50",
-  },
-  {
-    id: 5,
-    category: "Education",
-    title: "Digital Skills for Everyone",
-    description:
-      "Help students learn essential computer skills and become more confident in the digital world.",
-    date: "November 12, 2026",
-    time: "11:00 AM - 2:00 PM",
-    location: "Dhaka, Bangladesh",
-    volunteers: 14,
-    capacity: 25,
-    icon: BookOpen,
-    color: "bg-sky-100 text-sky-700",
-    accent: "from-sky-100 to-blue-50",
-  },
-  {
-    id: 6,
-    category: "Community",
-    title: "Share a Meal, Share a Smile",
-    description:
-      "Prepare and distribute meals while bringing hope, kindness, and care to people in need.",
-    date: "November 18, 2026",
-    time: "10:00 AM - 1:00 PM",
-    location: "Cumilla, Bangladesh",
-    volunteers: 16,
-    capacity: 30,
-    icon: HeartHandshake,
-    color: "bg-rose-100 text-rose-700",
-    accent: "from-rose-100 to-pink-50",
-  },
-];
+};
+
+const defaultEventStyle = eventStyles.Community;
 
 const categories = [
   "All Events",
@@ -120,11 +61,92 @@ const categories = [
   "Community",
 ];
 
+function formatEventDate(date: string) {
+  if (!date) return "Date not available";
+
+  const parsedDate = new Date(`${date.slice(0, 10)}T00:00:00`);
+
+  if (Number.isNaN(parsedDate.getTime())) return date;
+
+  return parsedDate.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatEventTime(startTime: string, endTime: string) {
+  if (!startTime && !endTime) return "Time not available";
+  if (!startTime) return endTime;
+  if (!endTime) return startTime;
+
+  return `${startTime} - ${endTime}`;
+}
+
 export default function EventsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] =
-    useState("All Events");
-  const [menuOpen, setMenuOpen] = useState(false);
+const [selectedCategory, setSelectedCategory] =
+  useState("All Events");
+const [menuOpen, setMenuOpen] = useState(false);
+
+const [events, setEvents] = useState<EventItem[]>([]);
+const [eventsLoading, setEventsLoading] = useState(true);
+const [eventsError, setEventsError] = useState("");
+
+useEffect(() => {
+  let cancelled = false;
+
+  async function loadEvents() {
+    try {
+      setEventsLoading(true);
+      setEventsError("");
+
+      const response = await fetch("/api/events", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to load events.");
+      }
+
+      const fetchedEvents: EventItem[] = (data.events || [])
+        .filter(
+          (event: EventItem) => event.status === "Published"
+        )
+        .map((event: EventItem & { _id?: string }) => ({
+          ...event,
+          id: event._id || event.id,
+          volunteers:
+            typeof event.volunteers === "number"
+              ? event.volunteers
+              : undefined,
+        }))
+        .filter((event: EventItem) => Boolean(event.id));
+
+      if (!cancelled) {
+        setEvents(fetchedEvents);
+      }
+    } catch (error) {
+      console.error("Events loading error:", error);
+
+      if (!cancelled) {
+        setEventsError("Events could not be loaded. Please try again.");
+      }
+    } finally {
+      if (!cancelled) {
+        setEventsLoading(false);
+      }
+    }
+  }
+
+  loadEvents();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
   
 
   const filteredEvents = useMemo(() => {
@@ -143,7 +165,7 @@ export default function EventsPage() {
 
       return matchesCategory && matchesSearch;
     });
-  }, [searchTerm, selectedCategory]);
+  }, [events, searchTerm, selectedCategory]);
 
   const handleShareEvent = async (event: (typeof events)[number]) => {
   const shareUrl = `${window.location.origin}/events?eventId=${event.id}`;
@@ -470,11 +492,34 @@ export default function EventsPage() {
         </div>
 
         {/* Event Cards */}
-        {filteredEvents.length > 0 ? (
+        {eventsLoading ? (
+  <div className="mt-10 rounded-3xl bg-white p-12 text-center text-slate-500 shadow-sm">
+    Loading events...
+  </div>
+) : eventsError ? (
+  <div className="mt-10 rounded-3xl border border-rose-100 bg-white p-10 text-center">
+    <p className="text-rose-600">{eventsError}</p>
+    <button
+      type="button"
+      onClick={() => window.location.reload()}
+      className="mt-4 rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white"
+    >
+      Try Again
+    </button>
+  </div>
+) : filteredEvents.length > 0 ? (
           <div className="mt-10 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
             {filteredEvents.map((event) => {
-              const Icon = event.icon;
-              const spotsLeft = event.capacity - event.volunteers;
+  const style =
+    eventStyles[event.category as keyof typeof eventStyles] ||
+    defaultEventStyle;
+
+  const Icon = style.icon;
+
+  const spotsLeft =
+    typeof event.volunteers === "number"
+      ? Math.max(0, event.capacity - event.volunteers)
+      : null;
 
               return (
                 <article
@@ -482,23 +527,25 @@ export default function EventsPage() {
                   className="group overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/5"
                 >
                   <div
-                    className={`relative flex h-48 items-center justify-center bg-gradient-to-br ${event.accent}`}
+                    className={`relative flex h-48 items-center justify-center bg-gradient-to-br ${style.accent}`}
                   >
                     <div
-                      className={`rounded-3xl p-6 shadow-sm transition duration-300 group-hover:scale-105 ${event.color}`}
+                      className={`rounded-3xl p-6 shadow-sm transition duration-300 group-hover:scale-105 ${style.color}`}
                     >
                       <Icon size={52} strokeWidth={1.6} />
                     </div>
 
                     <span
-                      className={`absolute left-5 top-5 rounded-full px-3 py-1.5 text-xs font-bold ${event.color}`}
+                      className={`absolute left-5 top-5 rounded-full px-3 py-1.5 text-xs font-bold ${style.color}`}
                     >
                       {event.category}
                     </span>
 
                     <span className="absolute right-5 top-5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold text-slate-700">
-                      {spotsLeft} spots left
-                    </span>
+  {spotsLeft !== null
+    ? `${spotsLeft} spots left`
+    : `${event.capacity} total capacity`}
+</span>
                   </div>
 
                   <div className="p-6">
@@ -516,7 +563,7 @@ export default function EventsPage() {
                           size={17}
                           className="mt-0.5 shrink-0 text-emerald-600"
                         />
-                        <span>{event.date}</span>
+                        <span>{formatEventDate(event.date)}</span>
                       </p>
 
                       <p className="flex items-start gap-3">
@@ -524,7 +571,9 @@ export default function EventsPage() {
                           size={17}
                           className="mt-0.5 shrink-0 text-emerald-600"
                         />
-                        <span>{event.time}</span>
+                        <span>
+  {formatEventTime(event.startTime, event.endTime)}
+</span>
                       </p>
 
                       <p className="flex items-start gap-3">
@@ -541,21 +590,30 @@ export default function EventsPage() {
                           className="mt-0.5 shrink-0 text-emerald-600"
                         />
                         <span>
-                          {event.volunteers} / {event.capacity} volunteers
-                        </span>
+  {typeof event.volunteers === "number"
+    ? `${event.volunteers} / ${event.capacity} volunteers`
+    : `${event.capacity} volunteer capacity`}
+</span>
                       </p>
                     </div>
 
-                    <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className="h-full rounded-full bg-emerald-500 transition-all"
-                        style={{
-                          width: `${
-                            (event.volunteers / event.capacity) * 100
-                          }%`,
-                        }}
-                      />
-                    </div>
+                    {typeof event.volunteers === "number" && (
+  <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
+    <div
+      className="h-full rounded-full bg-emerald-500 transition-all"
+      style={{
+        width: `${
+          event.capacity > 0
+            ? Math.min(
+                100,
+                (event.volunteers / event.capacity) * 100
+              )
+            : 0
+        }%`,
+      }}
+    />
+  </div>
+)}
 
                    <div className="mt-6 grid grid-cols-2 gap-3">
   <button

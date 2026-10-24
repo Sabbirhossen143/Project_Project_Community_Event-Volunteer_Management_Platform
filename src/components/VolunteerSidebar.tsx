@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -30,6 +32,7 @@ type VolunteerSidebarProps = {
   userName?: string;
   userRole?: string;
   avatarText?: string;
+  avatarImage?: string;
 };
 
 const navItems = [
@@ -73,8 +76,59 @@ export default function VolunteerSidebar({
   userName = "Volunteer",
   userRole = "Volunteer",
   avatarText = "V",
+  avatarImage = "",
 }: VolunteerSidebarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+
+const [profileData, setProfileData] = useState<{
+  name: string;
+  profileImage: string;
+}>({
+  name: "",
+  profileImage: "",
+});
+
+useEffect(() => {
+  let cancelled = false;
+
+  async function loadProfile() {
+    try {
+      const response = await fetch("/api/volunteer/profile", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      if (!cancelled) {
+        setProfileData({
+          name: data.profile?.name || "",
+          profileImage: data.profile?.profileImage || "",
+        });
+      }
+    } catch (error) {
+      console.error("Volunteer sidebar profile error:", error);
+    }
+  }
+
+  loadProfile();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
+
+const displayName =
+  profileData.name ||
+  session?.user?.name ||
+  userName;
+
+const displayImage =
+  profileData.profileImage ||
+  avatarImage ||
+  "";
 
   return (
     <>
@@ -441,9 +495,24 @@ export default function VolunteerSidebar({
               className="uv-user-profile-link"
               onClick={onClose}
             >
-              <div className="uv-avatar">{avatarText}</div>
+              <div className="uv-avatar">
+  {displayImage ? (
+    <img
+      src={displayImage}
+      alt="Your profile"
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        borderRadius: "50%",
+      }}
+    />
+  ) : (
+    avatarText
+  )}
+</div>
               <div>
-                <div className="uv-user-name">{userName}</div>
+                <div className="uv-user-name">{displayName}</div>
                 <div className="uv-user-role">{userRole}</div>
               </div>
             </Link>
