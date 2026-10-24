@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -276,10 +277,25 @@ const displayAvatar =
     </Link>
   </div>
 
-  <button className="uv-logout" onClick={onLogout}>
-    <LogOut size={16} />
-    <span>Logout</span>
-  </button>
+  
+<button
+  type="button"
+  className="uv-logout"
+  onClick={async () => {
+    try {
+      await signOut({
+        callbackUrl: "/login",
+        redirect: true,
+      });
+    } catch (error) {
+      console.error("Organizer logout failed:", error);
+    }
+  }}
+>
+  <LogOut size={16} />
+  <span>Logout</span>
+</button>
+
 </div>
       </aside>
     </>
