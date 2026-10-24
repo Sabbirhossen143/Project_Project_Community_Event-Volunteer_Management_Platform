@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import toast from "react-hot-toast";
 import Link from "next/link";
 import { signIn, getSession } from "next-auth/react";
 import {
@@ -146,7 +147,7 @@ const handleLogin = async (
     });
 
     if (!result || result.error || !result.ok) {
-      alert("Invalid email or password. Please try again.");
+      toast.error("Invalid email or password. Please try again.");
       return;
     }
 
@@ -162,11 +163,11 @@ const handleLogin = async (
   sessionStorage.setItem("showWelcomeToast", "true");
   window.location.href = "/volunteer/dashboard";
 } else {
-      alert("User role not found. Please contact support.");
+      toast.error("User role not found. Please contact support.");
     }
   } catch (error) {
     console.error("Login failed:", error);
-    alert("Something went wrong. Please try again.");
+    toast.error("Something went wrong. Please try again.");
   } finally {
     setLoadingProvider(null);
   }
