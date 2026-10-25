@@ -168,7 +168,7 @@ useEffect(() => {
   }, [events, searchTerm, selectedCategory]);
 
   const handleShareEvent = async (event: (typeof events)[number]) => {
-  const shareUrl = `${window.location.origin}/events?eventId=${event.id}`;
+  const shareUrl = `${window.location.origin}/events?event=${encodeURIComponent(event.id)}`;
 
   const shareData = {
     title: event.title,

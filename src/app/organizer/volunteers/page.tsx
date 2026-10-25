@@ -873,8 +873,10 @@ async function confirmDelete() {
 .actions {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 5px;
   flex-wrap: nowrap;
+  min-width: max-content;
 }
 
 .confirm-overlay {
