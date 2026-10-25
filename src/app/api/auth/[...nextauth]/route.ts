@@ -14,6 +14,11 @@ if (!uri) {
 
 const client = new MongoClient(uri);
 
+async function getUsersCollection() {
+  await client.connect();
+  return client.db("unityvol").collection("users");
+}
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
@@ -33,12 +38,11 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        await client.connect();
+        const users = await getUsersCollection();
 
-        const db = client.db("unityvol");
-        const user = await db.collection("users").findOne({
-          email: credentials.email.trim().toLowerCase(),
-        });
+        const email = credentials.email.trim().toLowerCase();
+
+        const user = await users.findOne({ email });
 
         if (!user || typeof user.password !== "string") {
           return null;
@@ -57,7 +61,7 @@ export const authOptions: NextAuthOptions = {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
-          role: user.role,
+          role: user.role ?? null,
         };
       },
     }),
@@ -77,38 +81,124 @@ export const authOptions: NextAuthOptions = {
           GitHubProvider({
             clientId: process.env.GITHUB_ID,
             clientSecret: process.env.GITHUB_SECRET,
+            authorization: {
+              params: {
+                scope: "read:user user:email",
+              },
+            },
           }),
         ]
       : []),
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
-  if (user) {
-    token.id = user.id;
-    token.role = (user as { role?: string }).role;
-    token.name = user.name;
-    token.email = user.email;
-  }
+    async signIn({ user, account, profile }) {
+      // Credentials login আগের মতোই থাকবে
+      if (
+        !account ||
+        account.provider === "credentials"
+      ) {
+        return true;
+      }
 
-  return token;
-},
+      if (
+        account.provider !== "google" &&
+        account.provider !== "github"
+      ) {
+        return true;
+      }
+
+      const email = user.email?.trim().toLowerCase();
+
+      if (!email) {
+        return false;
+      }
+
+      // Google-এর email verification স্পষ্টভাবে false হলে আটকাবে
+      if (
+        account.provider === "google" &&
+        (profile as { email_verified?: boolean } | undefined)
+          ?.email_verified === false
+      ) {
+        return false;
+      }
+
+      const users = await getUsersCollection();
+
+      // আগে থেকে account থাকলে তার Role অপরিবর্তিত রাখবে
+      const existingUser = await users.findOne({ email });
+
+      if (existingUser) {
+        await users.updateOne(
+          { _id: existingUser._id },
+          {
+            $set: {
+              [`oauthProviders.${account.provider}`]:
+                account.providerAccountId,
+              updatedAt: new Date(),
+            },
+          }
+        );
+
+        return true;
+      }
+
+      // নতুন OAuth account MongoDB-তে সংরক্ষণ
+      await users.insertOne({
+        name: user.name ?? "",
+        email,
+        role: null,
+        authProvider: account.provider,
+        oauthProviders: {
+          [account.provider]: account.providerAccountId,
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      return true;
+    },
+
+    async jwt({ token, user }) {
+      if (user) {
+        token.email = user.email;
+      }
+
+      // প্রতিবার MongoDB থেকে সর্বশেষ Role নেবে
+      if (token.email) {
+        const users = await getUsersCollection();
+
+        const dbUser = await users.findOne({
+          email: token.email.toLowerCase(),
+        });
+
+        if (dbUser) {
+          token.id = dbUser._id.toString();
+          token.role = dbUser.role ?? null;
+          token.name = dbUser.name ?? token.name;
+          token.email = dbUser.email;
+        }
+      }
+
+      return token;
+    },
 
     async session({ session, token }) {
-  if (session.user) {
-    const sessionUser = session.user as typeof session.user & {
-      id?: string;
-      role?: string;
-    };
+      if (session.user) {
+        const sessionUser = session.user as typeof session.user & {
+          id?: string;
+          role?: string | null;
+        };
 
-    sessionUser.id = token.id as string;
-    sessionUser.role = token.role as string;
-    sessionUser.name = token.name ?? null;
-    sessionUser.email = token.email ?? null;
-  }
+        sessionUser.id = token.id as string;
+        sessionUser.role =
+          (token.role as string | null | undefined) ?? null;
+        sessionUser.name = token.name ?? null;
+        sessionUser.email = token.email ?? null;
+      }
 
-  return session;
-},
+      return session;
+    },
   },
 
   pages: {

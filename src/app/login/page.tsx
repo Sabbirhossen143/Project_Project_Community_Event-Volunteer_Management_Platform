@@ -173,16 +173,19 @@ const handleLogin = async (
   }
 };
 
-  const handleSocialLogin = async (provider: "google" | "github") => {
+const handleSocialLogin = async (
+  provider: "google" | "github"
+) => {
   try {
     setLoadingProvider(provider);
 
     await signIn(provider, {
-      callbackUrl: "/",
+      callbackUrl: "/select-role",
       redirect: true,
     });
   } catch (error) {
     console.error(`${provider} sign-in failed:`, error);
+    toast.error("Social login failed. Please try again.");
     setLoadingProvider(null);
   }
 };
