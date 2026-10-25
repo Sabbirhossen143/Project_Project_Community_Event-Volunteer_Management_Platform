@@ -123,7 +123,7 @@ const Footer = () => {
             {/* Social Links */}
             <div className="mt-6 flex items-center gap-3">
               <a
-                href="https://www.facebook.com/"
+                href="https://www.facebook.com/sabbirhossen.myprofile/"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Facebook"
@@ -133,7 +133,7 @@ const Footer = () => {
               </a>
 
               <a
-                href="https://www.instagram.com/"
+                href="https://www.instagram.com/sabbir_hossen_63?exln=ZnUxNTUyeDAwOWhi"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram"
@@ -143,7 +143,7 @@ const Footer = () => {
               </a>
 
               <a
-                href="https://www.linkedin.com/"
+                href="https://github.com/Sabbirhossen143"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="LinkedIn"
@@ -266,10 +266,10 @@ const Footer = () => {
                   </p>
 
                   <a
-                    href="mailto:hello@unityvol.com"
+                    href="mailto:sabbirhossen1430@gmail.com"
                     className="break-all transition-colors hover:text-emerald-400"
                   >
-                    hello@unityvol.com
+                    sabbirhossen1430@gmail.com
                   </a>
                 </div>
               </li>
@@ -285,10 +285,10 @@ const Footer = () => {
                   </p>
 
                   <a
-                    href="tel:+8801000000000"
+                    href="tel:+8801308772842"
                     className="transition-colors hover:text-emerald-400"
                   >
-                    +880 1000-000000
+                    +880 1308-772842
                   </a>
                 </div>
               </li>

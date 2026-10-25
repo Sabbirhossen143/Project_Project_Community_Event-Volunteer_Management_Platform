@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import emailjs from "@emailjs/browser";
 import Footer from "@/components/Footer";
 import {
   ArrowRight,
@@ -60,6 +61,8 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [events, setEvents] = useState<EventItem[]>([]);
 const [eventsLoading, setEventsLoading] = useState(true);
+const [sending, setSending] = useState(false);
+const [contactStatus, setContactStatus] = useState("");
 
 useEffect(() => {
   let cancelled = false;
@@ -735,7 +738,7 @@ useEffect(() => {
             <div>
               <p className="font-bold text-slate-800">Email Us</p>
               <p className="text-sm text-slate-500">
-                Your official email address
+                sabbirhossen1430@gmail.com
               </p>
             </div>
           </div>
@@ -759,7 +762,7 @@ useEffect(() => {
             <div>
               <p className="font-bold text-slate-800">Call Us</p>
               <p className="text-sm text-slate-500">
-                Add your contact number
+                01308772842
               </p>
             </div>
           </div>
@@ -777,24 +780,58 @@ useEffect(() => {
         </p>
 
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
+          onSubmit={async (e) => {
+  e.preventDefault();
 
-            const form = e.currentTarget;
-            const data = new FormData(form);
-            const name = String(data.get("name") || "");
-            const email = String(data.get("email") || "");
-            const subject = String(data.get("subject") || "");
-            const message = String(data.get("message") || "");
+  if (sending) return;
 
-            const mailto = `mailto:YOUR_EMAIL@example.com?subject=${encodeURIComponent(
-              subject || `UnityVol message from ${name}`
-            )}&body=${encodeURIComponent(
-              `Name: ${name}\nEmail: ${email}\n\n${message}`
-            )}`;
+  const form = e.currentTarget;
+  const data = new FormData(form);
 
-            window.location.href = mailto;
-          }}
+  const name = String(data.get("name") || "").trim();
+  const email = String(data.get("email") || "").trim();
+  const subject = String(data.get("subject") || "").trim();
+  const message = String(data.get("message") || "").trim();
+
+  setSending(true);
+  setContactStatus("");
+
+  try {
+    await emailjs.send(
+      process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+      process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!,
+      {
+        user_name: name,
+        user_email: email,
+        subject,
+        message,
+      },
+      {
+        publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!,
+      }
+    );
+setContactStatus("success");
+form.reset();
+} catch (error: unknown) {
+  console.error("EmailJS error details:", error);
+
+  if (error && typeof error === "object") {
+    const emailError = error as {
+      status?: number;
+      text?: string;
+      message?: string;
+    };
+
+    console.error("EmailJS Status:", emailError.status);
+    console.error("EmailJS Details:", emailError.text);
+    console.error("EmailJS Message:", emailError.message);
+  }
+
+  setContactStatus("error");
+} finally {
+  setSending(false);
+}
+}}
           className="mt-6 space-y-5"
         >
           <div>
@@ -853,13 +890,26 @@ useEffect(() => {
             />
           </div>
 
-          <button
-            type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 font-bold text-white shadow-md shadow-emerald-200 transition hover:bg-emerald-700"
-          >
-            Send Message
-            <Send size={17} />
-          </button>
+          {contactStatus === "success" && (
+  <p role="status" className="rounded-xl bg-emerald-100 p-3 text-sm font-medium text-emerald-800">
+    Message sent successfully! Thank you for contacting UnityVol.
+  </p>
+)}
+
+{contactStatus === "error" && (
+  <p role="alert" className="rounded-xl bg-red-100 p-3 text-sm font-medium text-red-800">
+    Failed to send message. Please try again.
+  </p>
+)}
+
+<button
+  type="submit"
+  disabled={sending}
+  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 font-bold text-white shadow-md shadow-emerald-200 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+>
+  {sending ? "Sending..." : "Send Message"}
+  {!sending && <Send size={17} />}
+</button>
         </form>
       </div>
 
