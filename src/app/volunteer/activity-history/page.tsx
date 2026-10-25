@@ -868,6 +868,27 @@ const filteredActivities = activities.filter((activity) => {
             padding: 14px 16px;
           }
         }
+
+        .uv-footer-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 2px 0;
+  color: #9aa6b6;
+  margin-bottom: 64px;
+  font-size: 10px;
+}
+
+@media (max-width: 650px) {
+  .uv-footer-note {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+}
+
       `}</style>
 
       <VolunteerSidebar
@@ -892,10 +913,17 @@ const filteredActivities = activities.filter((activity) => {
               {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
 
-            <span className="ah-breadcrumb">
-              Volunteer Workspace / Activity History
-            </span>
+            
+<div className="mr-auto text-xs text-slate-500 ah-breadcrumb">
+  Volunteer Workspace
+  <span className="mx-2">/</span>
+  <span className="font-bold text-slate-800">
+    Activity History
+  </span>
+</div>
+            
           </div>
+          
 
           
         </header>
@@ -1169,6 +1197,12 @@ const filteredActivities = activities.filter((activity) => {
               </span>
             </div>
           </section>
+
+          <footer className="uv-footer-note">
+  <span>© 2026 UnityVol · Activities · Progress · Impact</span>
+  <span>Volunteer activity history</span>
+</footer>
+
         </section>
       </main>
 

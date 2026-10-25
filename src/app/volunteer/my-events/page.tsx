@@ -717,6 +717,27 @@ return () => window.clearInterval(intervalId);
             gap: 8px;
           }
         }
+
+        .uv-footer-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 2px 0;
+  color: #9aa6b6;
+  margin-bottom: 48px;
+  font-size: 10px;
+}
+
+@media (max-width: 650px) {
+  .uv-footer-note {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom:16px;
+  }
+}
+
       `}</style>
 
       <VolunteerSidebar
@@ -739,9 +760,13 @@ return () => window.clearInterval(intervalId);
             {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
 
-          <span className="me-breadcrumb">
-            Volunteer Workspace / My Events
-          </span>
+          <div className="mr-auto text-xs text-slate-500 ah-breadcrumb">
+  Volunteer Workspace
+  <span className="mx-2">/</span>
+  <span className="font-bold text-slate-800">
+     My Events
+  </span>
+</div>
         </header>
 
         <section className="me-content">
@@ -972,6 +997,12 @@ return () => window.clearInterval(intervalId);
               )}
             </div>
           </section>
+
+          <footer className="uv-footer-note">
+  <span>© 2026 UnityVol · Events · Participation · Impact</span>
+  <span>My registered events</span>
+</footer>
+
         </section>
       </main>
 
@@ -1013,13 +1044,13 @@ return () => window.clearInterval(intervalId);
         <QrCode size={30} />
       </div>
 
-      <h2 className="text-lg font-extrabold text-slate-900 sm:text-2xl">
-        Your Registration QR Code
-      </h2>
+      <h2 className="text-base font-extrabold text-slate-900 sm:text-2xl">
+  Your Registration QR Code
+</h2>
 
-      <p className="mt-2 text-sm text-slate-500">
-        Keep this QR code for your event registration.
-      </p>
+      <p className="mt-2 text-xs text-slate-500 sm:text-sm">
+  Keep this QR code for your event registration.
+</p>
 
       <div className="mx-auto mt-4 flex w-fit items-center justify-center rounded-xl border border-slate-200 bg-white p-2 sm:mt-6 sm:rounded-2xl sm:p-4">
         <QRCodeSVG
@@ -1029,7 +1060,7 @@ return () => window.clearInterval(intervalId);
             date: selectedQrEvent.date,
             location: selectedQrEvent.location,
           })}
-          size={180}
+          size={typeof window !== "undefined" && window.innerWidth <= 600 ? 90 : 125}
           level="H"
           includeMargin
         />
@@ -1037,39 +1068,41 @@ return () => window.clearInterval(intervalId);
 
       <div className="mt-6 space-y-3 rounded-xl bg-slate-50 p-4 text-left">
         <div>
-          <p className="text-xs font-semibold text-slate-500">
-            Event Name
-          </p>
-          <p className="mt-1 text-sm font-bold text-slate-900">
-            {selectedQrEvent.title}
-          </p>
+          <p className="text-[10px] font-semibold text-slate-500 sm:text-xs">
+  Event Name
+</p>
+
+<p className="mt-1 text-xs font-bold text-slate-900 sm:text-sm">
+  {selectedQrEvent.title}
+</p>
         </div>
 
         <div>
           <p className="text-xs font-semibold text-slate-500">
             Registration ID
           </p>
-          <p className="mt-1 font-mono text-sm font-bold text-emerald-700">
-            UV-REG-{selectedQrEvent.id}
-          </p>
+          <p className="mt-1 break-all font-mono text-xs font-bold text-emerald-700 sm:text-sm">
+  UV-REG-{selectedQrEvent.id}
+</p>
         </div>
       </div>
 
       <button
-        type="button"
-        onClick={() => window.print()}
-        className="mt-5 w-full rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800"
-      >
-        Print / Save QR Code
-      </button>
+  type="button"
+  onClick={() => window.print()}
+  className="mt-5 w-full rounded-xl bg-emerald-700 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-800 sm:px-5 sm:py-3 sm:text-sm"
+>
+  Print / Save QR Code
+</button>
 
-      <button
-        type="button"
-        onClick={() => setSelectedQrEvent(null)}
-        className="mt-3 w-full rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50"
-      >
-        Close
-      </button>
+<button
+  type="button"
+  onClick={() => setSelectedQrEvent(null)}
+  className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 sm:px-5 sm:py-3 sm:text-sm"
+>
+  Close
+</button>
+
     </div>
   </div>
 )}

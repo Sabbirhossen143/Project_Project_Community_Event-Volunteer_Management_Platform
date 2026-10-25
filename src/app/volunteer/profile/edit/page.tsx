@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import Link from "next/link";
 import {
+  Menu, 
+  X,
   ArrowLeft,
   Camera,
   Check,
@@ -212,7 +214,16 @@ export default function EditVolunteerProfilePage() {
 
       <main className="min-h-screen lg:ml-[246px]">
         <header className="sticky top-0 z-20 flex h-[67px] items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur sm:px-7">
-          <div className="text-xs text-slate-500">
+          <button
+  type="button"
+  onClick={() => setSidebarOpen((open) => !open)}
+  className="mr-3 grid h-[37px] w-[37px] shrink-0 place-items-center rounded-lg border border-slate-200 bg-white lg:hidden"
+  aria-label="Toggle navigation"
+>
+  {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+</button>
+
+          <div className="mr-auto text-xs text-slate-500">
             Volunteer Portal
             <span className="mx-2">/</span>
             <Link
@@ -226,34 +237,34 @@ export default function EditVolunteerProfilePage() {
               Edit
             </span>
           </div>
-
-          <span className="text-xs font-extrabold tracking-wide text-emerald-700">
-            UnityVol
-          </span>
         </header>
 
         <div className="mx-auto max-w-5xl p-4 sm:p-7">
-          <Link
-            href="/volunteer/profile"
-            className="mb-5 inline-flex items-center gap-2 text-xs font-bold text-emerald-700 hover:text-emerald-900"
-          >
-            <ArrowLeft size={15} />
-            Back to My Profile
-          </Link>
+          
+<div className="mb-6">
+  <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+    <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-emerald-700">
+      Make it yours
+    </p>
 
-          <div className="mb-6">
-            <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.16em] text-emerald-700">
-              Make it yours
-            </p>
+    <Link
+      href="/volunteer/profile"
+      className="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 hover:text-emerald-900"
+    >
+      <ArrowLeft size={15} />
+      Back to My Profile
+    </Link>
+  </div>
 
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Edit Profile
-            </h1>
+  <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+    Edit Profile
+  </h1>
 
-            <p className="mt-2 text-sm text-slate-500">
-              Refresh your details, share your strengths, and
-              choose the causes that matter to you.
-            </p>
+  <p className="mt-2 text-sm text-slate-500">
+    Refresh your details, share your strengths, and
+    choose the causes that matter to you.
+  </p>
+
           </div>
 
           {savedMessage && (

@@ -871,6 +871,25 @@ export default function AnalyticsPage() {
             flex-direction: column;
           }
         }
+
+.uv-footer-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 2px 0;
+  margin-bottom: 48px;
+  color: #9aa6b6;
+  font-size: 10px;
+}
+
+@media (max-width: 650px) {
+  .uv-footer-note {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
       `}</style>
 
       <OrganizerSidebar
@@ -1189,10 +1208,10 @@ export default function AnalyticsPage() {
           </div>
         </section>
 
-        <footer className="footer-note">
-          <span>© 2026 UnityVol · People · Events · Impact</span>
-          <span>Analytics overview</span>
-        </footer>
+        <footer className="uv-footer-note">
+  <span>© 2026 UnityVol · Data · Insights · Growth</span>
+  <span>Event analytics</span>
+</footer>
       </main>
 
       <OrganizerAIChat />

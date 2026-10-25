@@ -1552,6 +1552,10 @@ const notificationCount =
           background: #fff3dd;
           color: #ad7413;
         }
+          .uv-registration-status.rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
 
         .uv-footer-note {
           display: flex;

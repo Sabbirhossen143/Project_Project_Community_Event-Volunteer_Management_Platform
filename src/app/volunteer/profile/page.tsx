@@ -15,6 +15,8 @@ import {
   ShieldCheck,
   Sparkles,
   BriefcaseBusiness,
+  Menu, 
+  X,
 } from "lucide-react";
 import VolunteerSidebar from "@/components/VolunteerSidebar";
 
@@ -111,17 +113,24 @@ useEffect(() => {
 
       <main className="min-h-screen lg:ml-[246px]">
         <header className="sticky top-0 z-20 flex h-[67px] items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur sm:px-7">
-          <div className="text-xs text-slate-500">
-            Volunteer Portal
-            <span className="mx-2">/</span>
-            <span className="font-bold text-slate-800">
-              My Profile
-            </span>
-          </div>
+        <button
+  type="button"
+  onClick={() => setSidebarOpen((open) => !open)}
+  className="grid h-[37px] w-[37px] place-items-center rounded-lg border border-slate-200 bg-white lg:hidden"
+  aria-label="Toggle navigation"
+>
+  {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+</button>
 
-          <span className="text-xs font-extrabold tracking-wide text-emerald-700">
-            UnityVol
-          </span>
+<div className="mr-auto ml-3 text-xs text-slate-500">
+  Volunteer Workspace
+  <span className="mx-2">/</span>
+  <span className="font-bold text-slate-800">
+    My Profile
+  </span>
+</div>
+
+
         </header>
 
         <div className="mx-auto max-w-[1450px] p-4 sm:p-7">
@@ -320,9 +329,10 @@ useEffect(() => {
             </div>
           </div>
 
-          <p className="mt-7 text-center text-[11px] text-slate-400">
-            UnityVol · Small actions, stronger communities.
-          </p>
+          <footer className="mt-8 mb-[20px] flex flex-col items-start gap-1.5 text-[10px] text-[#9aa6b6] sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+  <span>© 2026 UnityVol · Profile · Identity · Community</span>
+  <span>Volunteer profile</span>
+</footer>
         </div>
       </main>
     </div>

@@ -1321,6 +1321,26 @@ const notificationCount = reminderEvents.filter(
   }
 }
 
+.uv-footer-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 2px 0;
+  margin-bottom: 48px;
+  color: #9aa6b6;
+  font-size: 10px;
+}
+
+@media (max-width: 650px) {
+  .uv-footer-note {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+}
+
       `}</style>
 
       <VolunteerSidebar
@@ -1361,9 +1381,13 @@ const notificationCount = reminderEvents.filter(
               {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
 
-            <span className="v-top-title">
-              Volunteer Workspace / Dashboard
-            </span>
+           <div className="mr-auto text-xs text-slate-500 ah-breadcrumb">
+  Volunteer Workspace
+  <span className="mx-2">/</span>
+  <span className="font-bold text-slate-800">
+     Dashboard
+  </span>
+</div>
           </div>
 
           
@@ -1798,6 +1822,12 @@ const notificationCount = reminderEvents.filter(
               </Link>
             </section>
           </div>
+
+          <footer className="uv-footer-note">
+  <span>© 2026 UnityVol · Community · Events · Impact</span>
+  <span>Volunteer dashboard</span>
+</footer>
+
         </section>
       </main>
 

@@ -531,6 +531,25 @@ async function handleSubmit(
             width: 100%;
           }
         }
+
+        .uv-footer-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 2px 0;
+  color: #9aa6b6;
+  font-size: 10px;
+}
+
+@media (max-width: 650px) {
+  .uv-footer-note {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
       `}</style>
 
       <OrganizerSidebar
@@ -771,6 +790,10 @@ async function handleSubmit(
               </div>
             </form>
           </section>
+          <footer className="uv-footer-note">
+  <span>© 2026 UnityVol · Account · Preferences · Security</span>
+  <span>Profile settings</span>
+</footer>
         </div>
       </main>
     </div>

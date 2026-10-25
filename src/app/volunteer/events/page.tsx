@@ -606,32 +606,141 @@ const handleRegistrationSubmit = async (
         }
 
         @media (max-width: 600px) {
-          .browse-heading {
-            align-items: flex-start;
-            flex-direction: column;
-          }
+  .browse-content {
+    padding: 20px 14px;
+  }
 
-          .browse-heading h1 {
-            font-size: 24px;
-          }
+  .browse-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 22px;
+  }
 
-          .browse-toolbar {
-            align-items: stretch;
-            flex-direction: column;
-          }
+  .browse-heading h1 {
+    font-size: 25px;
+    line-height: 1.3;
+  }
 
-          .browse-filter-label {
-            padding: 5px 0;
-          }
+  .browse-subtitle {
+    font-size: 13px;
+    line-height: 1.65;
+  }
 
-          .browse-grid {
-            grid-template-columns: 1fr;
-          }
+  .browse-count {
+    padding: 9px 12px;
+    font-size: 12px;
+  }
 
-          .browse-card-banner {
-            min-height: 95px;
-          }
-        }
+  .browse-toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .browse-search {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    height: 50px;
+    flex: none;
+    padding: 0 14px;
+    gap: 10px;
+  }
+
+.browse-search:focus-within {
+  border-color: #15803d;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+  .browse-search svg {
+    flex-shrink: 0;
+    width: 19px;
+    height: 19px;
+  }
+
+  .browse-search input {
+    width: 100%;
+    min-width: 0;
+    font-size: 14px;
+  }
+
+  .browse-search input::placeholder {
+    font-size: 12px;
+  }
+
+  .browse-filter-label {
+    display: flex;
+    align-self: flex-start;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    font-size: 13px;
+    white-space: normal;
+  }
+
+  .browse-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .browse-category {
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .browse-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .browse-card-banner {
+    min-height: 95px;
+    padding: 16px;
+  }
+
+  .browse-card-body {
+    padding: 16px;
+  }
+
+  .browse-card-actions {
+    gap: 10px;
+  }
+
+  .browse-details,
+  .browse-register {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+}
+
+        .uv-footer-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 2px 0;
+  margin-bottom: 48px;
+  color: #9aa6b6;
+  font-size: 10px;
+}
+
+@media (max-width: 650px) {
+  .uv-footer-note {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+}
+
       `}</style>
 
       <VolunteerSidebar
@@ -654,9 +763,13 @@ const handleRegistrationSubmit = async (
             {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
 
-          <span className="browse-top-title">
-            Volunteer Workspace / Browse Events
-          </span>
+          <div className="mr-auto text-xs text-slate-500 ah-breadcrumb">
+  Volunteer Workspace
+  <span className="mx-2">/</span>
+  <span className="font-bold text-slate-800">
+     Browse Events
+  </span>
+</div>
         </header>
 
         <section className="browse-content">
@@ -823,7 +936,14 @@ const handleRegistrationSubmit = async (
               </div>
             )}
           </div>
+
+          <footer className="uv-footer-note">
+            <span>© 2026 UnityVol · Discover · Participate · Inspire</span>
+            <span>Explore volunteer opportunities</span>
+          </footer>
+
         </section>
+
       </main>
 
       <VolunteerAIChat />
@@ -860,26 +980,26 @@ const handleRegistrationSubmit = async (
       <CheckCircle2 size={25} />
     </div>
 
-    <h2 className="mt-3 text-xl font-extrabold text-slate-900">
+    <h2 className="mt-3 text-base font-extrabold text-slate-900 sm:text-xl">
       Registration Submitted!
     </h2>
 
-    <p className="mt-1 text-xs text-slate-500">
+    <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">
       Your registration was submitted successfully.
     </p>
 
     {/* Name & Email */}
     <div className="mx-auto mt-4 grid max-w-sm grid-cols-2 gap-3 rounded-xl border border-slate-200 p-3 text-left">
       <div className="min-w-0">
-        <p className="text-[11px] text-slate-500">Name</p>
-        <p className="mt-1 truncate text-xs font-bold text-slate-900">
+        <p className="text-[9px] text-slate-500 sm:text-[11px]">Name</p>
+        <p className="mt-1 truncate text-[10px] font-bold text-slate-900 sm:text-xs">
           {fullName}
         </p>
       </div>
 
       <div className="min-w-0">
-        <p className="text-[11px] text-slate-500">Email</p>
-        <p className="mt-1 truncate text-xs font-bold text-slate-900">
+        <p className="text-[9px] text-slate-500 sm:text-[11px]">Email</p>
+        <p className="mt-1 truncate text-[10px] font-bold text-slate-900 sm:text-xs">
           {email}
         </p>
       </div>
@@ -889,7 +1009,7 @@ const handleRegistrationSubmit = async (
     <div className="mx-auto mt-4 w-full max-w-sm rounded-xl border border-slate-200 p-3">
       <div className="flex items-center justify-center gap-2">
         <QrCode size={17} className="text-emerald-700" />
-        <h3 className="text-sm font-bold text-slate-900">
+        <h3 className="text-xs font-bold text-slate-900 sm:text-sm">
           Registration QR Code
         </h3>
       </div>
@@ -901,7 +1021,7 @@ const handleRegistrationSubmit = async (
   eventId: registerEvent.id,
   eventName: registerEvent.title,
 })}
-          size={125}
+          size={typeof window !== "undefined" && window.innerWidth <= 600 ? 90 : 125}
           level="H"
           includeMargin
         />
