@@ -20,6 +20,7 @@ import {
   HandHeart,
   LogOut,
   Mail,
+  Eye,
 } from "lucide-react";
 
 type VolunteerStatus = "Pending" | "Confirmed" | "Rejected";
@@ -33,6 +34,16 @@ type Volunteer = {
   date: string;
   status: VolunteerStatus;
   color: string;
+  profile: {
+  name?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  bio?: string;
+  skills?: string[];
+  interests?: string[];
+  profileImage?: string;
+} | null;
 };
 
 const navItems = [
@@ -51,8 +62,9 @@ export default function EventVolunteersPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Volunteer | null>(null);
-
+  const [selectedProfile, setSelectedProfile] = useState<Volunteer | null>(null);
   
+
 const [loading, setLoading] = useState(true);
 
 useEffect(() => {
@@ -79,6 +91,7 @@ useEffect(() => {
       const mapped: Volunteer[] = (data.registrations ?? []).map(
         (r: {
           _id: string;
+          volunteerProfile?: Volunteer["profile"] | null;
           volunteerName: string;
           volunteerEmail: string;
           eventTitle: string;
@@ -89,6 +102,7 @@ useEffect(() => {
 
           return {
             id: String(r._id),
+            profile: r.volunteerProfile ?? null,
             name,
             email: r.volunteerEmail || "",
             initials: name
@@ -435,6 +449,233 @@ async function confirmDelete() {
           gap: 12px;
           padding: 18px;
         }
+
+        
+.profile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  background: rgba(12, 25, 43, 0.58);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  animation: profileFadeIn 0.18s ease-out;
+}
+
+.profile-modal {
+  width: 100%;
+  max-width: 540px;
+  max-height: min(82dvh, 650px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  animation: profileSlideIn 0.22s ease-out;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.profile-header h2 {
+  margin: 0;
+  color: #14243a;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.45px;
+}
+
+.profile-header .action {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 11px;
+}
+
+.profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin: 16px 0;
+  padding: 15px;
+  border: 1px solid #e0f2e9;
+  border-radius: 13px;
+  background: linear-gradient(120deg, #f0fdf6, #f8fbff);
+}
+
+.profile-identity img,
+.profile-avatar {
+  width: 62px;
+  height: 62px;
+  flex-shrink: 0;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.10);
+}
+
+.profile-avatar {
+  display: grid;
+  place-items: center;
+  background: #d5f3e5;
+  color: #087b56;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.profile-identity-info {
+  min-width: 0;
+}
+
+.profile-identity-info h3 {
+  margin: 0;
+  color: #17243b;
+  font-size: 15px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.profile-identity-info p {
+  margin: 5px 0 0;
+  color: #718096;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.profile-section-title {
+  margin: 18px 0 10px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.profile-field {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #e9eef4;
+  border-radius: 10px;
+  background: #fbfcfe;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.profile-field:hover {
+  border-color: #ccebdc;
+  background: #f8fdf9;
+}
+
+.profile-label {
+  margin-bottom: 6px;
+  color: #8492a6;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.profile-value {
+  color: #26374d;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.profile-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: #fff4dc;
+  color: #a66b08;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+@keyframes profileFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes profileSlideIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 520px) {
+  .profile-overlay {
+    align-items: center;
+    padding: 10px;
+  }
+
+  .profile-modal {
+    width: 100%;
+    max-height: 84dvh;
+    padding: 15px;
+    border-radius: 15px;
+  }
+
+  .profile-header h2 {
+    font-size: 15px;
+  }
+
+  .profile-identity {
+    gap: 11px;
+    margin: 13px 0;
+    padding: 12px;
+  }
+
+  .profile-identity img,
+  .profile-avatar {
+    width: 54px;
+    height: 54px;
+  }
+
+  .profile-identity-info h3 {
+    font-size: 13px;
+  }
+
+  .profile-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .profile-field {
+    padding: 10px 11px;
+  }
+
+  .profile-section-title {
+    margin-top: 15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-overlay,
+  .profile-modal {
+    animation: none;
+  }
+}
+
 
         .panel-title { margin: 0; font-size: 14px; font-weight: 800; }
 
@@ -959,8 +1200,17 @@ async function confirmDelete() {
   </span>
 </td>
 
-                      <td>
+  <td>
   <div className="actions">
+    <button
+  className="action"
+  onClick={() => setSelectedProfile(volunteer)}
+  title="View volunteer profile"
+>
+  <Eye size={13} />
+  View Profile
+</button>
+
     {volunteer.status === "Pending" ? (
       <>
         <button
@@ -1089,6 +1339,82 @@ async function confirmDelete() {
         >
           Yes, Delete
         </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{selectedProfile && (
+  <div
+    className="profile-overlay"
+    onClick={() => setSelectedProfile(null)}
+  >
+    <div
+      className="profile-modal"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="profile-header">
+        <h2>Volunteer Profile</h2>
+
+        <button
+          type="button"
+          className="action"
+          onClick={() => setSelectedProfile(null)}
+        >
+          <X size={14} /> Close
+        </button>
+      </div>
+
+      
+<div className="profile-identity">
+  {selectedProfile.profile?.profileImage ? (
+    <img
+      src={selectedProfile.profile.profileImage}
+      alt={selectedProfile.profile?.name || selectedProfile.name}
+    />
+  ) : (
+    <div className="profile-avatar">
+      {selectedProfile.initials}
+    </div>
+  )}
+
+  <div className="profile-identity-info">
+    <h3>
+      {selectedProfile.profile?.name || selectedProfile.name}
+    </h3>
+    <p>
+      {selectedProfile.profile?.email || selectedProfile.email}
+    </p>
+  </div>
+</div>
+
+<div className="profile-section-title">
+  Personal Information
+</div>
+
+
+      <div className="profile-grid">
+        {[
+          ["Full Name", selectedProfile.profile?.name || selectedProfile.name],
+          ["Email", selectedProfile.profile?.email || selectedProfile.email],
+          ["Phone", selectedProfile.profile?.phone],
+          ["Location", selectedProfile.profile?.location],
+          ["About Me", selectedProfile.profile?.bio],
+          ["Skills", selectedProfile.profile?.skills?.join(", ")],
+          ["Interests", selectedProfile.profile?.interests?.join(", ")],
+          ["Event", selectedProfile.event],
+          ["Event Date", selectedProfile.date],
+          ["Registration Status", selectedProfile.status],
+        ].map(([label, value]) => (
+          <div className="profile-field" key={label}>
+            <div className="profile-label">{label}</div>
+            <div className="profile-value">
+              {value || "Not provided"}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   </div>

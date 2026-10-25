@@ -659,6 +659,11 @@ const filteredActivities = activities.filter((activity) => {
           color: #a16207;
         }
 
+        .ah-status.rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
         .ah-hours {
           display: flex;
           align-items: center;

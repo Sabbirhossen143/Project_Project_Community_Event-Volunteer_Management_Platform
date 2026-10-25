@@ -1029,16 +1029,16 @@ const handleRegistrationSubmit = async (
 
       {/* Event Information */}
       <div className="mt-3 rounded-lg bg-slate-50 p-3 text-left">
-        <p className="text-[11px] text-slate-500">Event</p>
-        <p className="mt-1 text-xs font-bold text-slate-900">
+        <p className="text-[9px] text-slate-500 sm:text-[11px]">Event</p>
+        <p className="mt-1 text-[10px] font-bold text-slate-900 sm:text-xs">
           {registerEvent.title}
         </p>
 
         <div className="mt-2 flex items-center justify-between gap-2">
-          <span className="text-[11px] text-slate-500">
+          <span className="text-[9px] text-slate-500 sm:text-[11px]">
             Registration ID
           </span>
-          <span className="font-mono text-xs font-bold text-emerald-700">
+          <span className="mt-1 text-[10px] font-bold text-slate-900 sm:text-xs">
             {registrationId}
           </span>
         </div>
@@ -1049,7 +1049,7 @@ const handleRegistrationSubmit = async (
     <button
       type="button"
       onClick={() => setRegisterEvent(null)}
-      className="mt-4 rounded-lg bg-emerald-700 px-7 py-2.5 text-sm font-bold text-white hover:bg-emerald-800"
+      className="mt-4 rounded-lg bg-emerald-700 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-800 sm:px-7 sm:py-2.5 sm:text-sm"
     >
       Done
     </button>

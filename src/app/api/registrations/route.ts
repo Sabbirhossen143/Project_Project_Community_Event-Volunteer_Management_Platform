@@ -47,11 +47,31 @@ export async function GET() {
       .sort({ createdAt: -1 })
       .toArray();
 
+      const volunteerIds = [
+  ...new Set(
+    registrations
+      .map((r) => r.volunteerId)
+      .filter(Boolean)
+      .map(String)
+  ),
+];
+
+const profiles = await db
+  .collection("volunteerProfiles")
+  .find({ userId: { $in: volunteerIds } })
+  .toArray();
+
+const profileMap = new Map(
+  profiles.map((profile) => [String(profile.userId), profile])
+);
+
     const result = registrations.map((registration) => {
       const event = eventMap.get(registration.eventId.toString());
 
       return {
         ...registration,
+        volunteerProfile:
+  profileMap.get(String(registration.volunteerId)) ?? null,
         _id: registration._id.toString(),
         eventId: registration.eventId.toString(),
         volunteerName: registration.volunteerName ?? "Unknown Volunteer",

@@ -1004,6 +1004,11 @@ const notificationCount = reminderEvents.filter(
           color: #a16207;
         }
 
+        .v-status.rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
         .v-empty {
           padding: 30px 20px;
           color: #8795a8;
@@ -1788,8 +1793,12 @@ const notificationCount = reminderEvents.filter(
 
                       <span
                         className={`v-status ${
-                          event.status === "Pending" ? "pending" : ""
-                        }`}
+  event.status === "Pending"
+    ? "pending"
+    : event.status?.toLowerCase() === "rejected"
+    ? "rejected"
+    : ""
+}`}
                       >
                         {event.status}
                       </span>
