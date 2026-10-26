@@ -4,6 +4,9 @@
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import { useEffect, useMemo, useState } from "react";
+import EventDetailsModal, {
+  type EventDetailsData,
+} from "@/components/EventDetailsModal";
 import {
   ArrowRight,
   CalendarDays,
@@ -92,6 +95,8 @@ const [menuOpen, setMenuOpen] = useState(false);
 const [events, setEvents] = useState<EventItem[]>([]);
 const [eventsLoading, setEventsLoading] = useState(true);
 const [eventsError, setEventsError] = useState("");
+const [selectedEvent, setSelectedEvent] =
+  useState<EventDetailsData | null>(null);
 
 useEffect(() => {
   let cancelled = false;
@@ -147,6 +152,41 @@ useEffect(() => {
     cancelled = true;
   };
 }, []);
+
+useEffect(() => {
+  if (eventsLoading || !events.length) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const eventId = params.get("event");
+
+  if (!eventId) return;
+
+  const matchedEvent = events.find(
+    (event) => String(event.id) === eventId
+  );
+
+  if (!matchedEvent) return;
+
+  const style =
+    eventStyles[
+      matchedEvent.category as keyof typeof eventStyles
+    ] || defaultEventStyle;
+
+  setSelectedEvent({
+    id: matchedEvent.id,
+    title: matchedEvent.title,
+    category: matchedEvent.category,
+    date: matchedEvent.date,
+    time: formatEventTime(
+      matchedEvent.startTime,
+      matchedEvent.endTime
+    ),
+    location: matchedEvent.location,
+    description: matchedEvent.description,
+    color: "#dcfce7",
+    textColor: "#15803d",
+  });
+}, [events, eventsLoading]);
   
 
   const filteredEvents = useMemo(() => {
@@ -701,8 +741,20 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* Footer */}
+            {/* Footer */}
       <Footer />
+
+      <EventDetailsModal
+        event={selectedEvent}
+        onClose={() => {
+          setSelectedEvent(null);
+
+          const url = new URL(window.location.href);
+          url.searchParams.delete("event");
+
+          window.history.replaceState({}, "", url.toString());
+        }}
+      />
     </main>
   );
 }

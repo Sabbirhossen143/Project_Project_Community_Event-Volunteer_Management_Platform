@@ -223,9 +223,9 @@ export default function EventDetailsModal({
       type="button"
       onClick={async () => {
         const shareUrl = new URL(
-          `/volunteer/events?event=${event.id}`,
-          window.location.origin
-        ).toString();
+  `/volunteer/events?event=${encodeURIComponent(String(event.id))}`,
+  window.location.origin
+).toString();
 
         const shareText = `Check out this volunteer event: ${event.title}`;
 

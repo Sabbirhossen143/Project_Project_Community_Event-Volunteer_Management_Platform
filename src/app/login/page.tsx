@@ -161,7 +161,16 @@ const handleLogin = async (
   window.location.href = "/organizer/dashboard";
 } else if (role === "Volunteer") {
   sessionStorage.setItem("showWelcomeToast", "true");
-  window.location.href = "/volunteer/dashboard";
+
+  const params = new URLSearchParams(window.location.search);
+  const callbackUrl = params.get("callbackUrl");
+
+  const isVolunteerEventUrl =
+    callbackUrl?.startsWith("/volunteer/events");
+
+  window.location.href = isVolunteerEventUrl
+    ? callbackUrl!
+    : "/volunteer/dashboard";
 } else {
       toast.error("User role not found. Please contact support.");
     }

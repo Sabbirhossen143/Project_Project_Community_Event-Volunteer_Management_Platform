@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import VolunteerSidebar from "@/components/VolunteerSidebar";
 import VolunteerAIChat from "@/components/volunteer/VolunteerAIChat";
@@ -21,6 +22,7 @@ import {
   Menu,
   SlidersHorizontal,
   Heart,
+   Share2,
 } from "lucide-react";
 
 
@@ -53,7 +55,34 @@ export default function BrowseEventsPage() {
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState("");
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+const router = useRouter();
+
+useEffect(() => {
+  if (status === "loading") return;
+
+  if (status === "unauthenticated") {
+    const returnTo =
+      window.location.pathname + window.location.search;
+
+    router.replace(
+      `/login?callbackUrl=${encodeURIComponent(returnTo)}`
+    );
+    return;
+  }
+
+  const role = (
+    session?.user as { role?: string } | undefined
+  )?.role;
+
+  if (role && role !== "Volunteer") {
+    router.replace(
+      role === "Organizer"
+        ? "/organizer/dashboard"
+        : "/login"
+    );
+  }
+}, [status, session, router]);
 
   useEffect(() => {
   const fetchEvents = async () => {
@@ -133,6 +162,32 @@ const toggleFavorite = (eventId: string) => {
     return updated;
   });
 };
+
+
+const handleShareEvent = async (event: EventItem) => {
+  const shareUrl =
+    `${window.location.origin}/volunteer/events?event=${encodeURIComponent(event.id)}`;
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: event.title,
+        text: `${event.title}\n${event.description}`,
+        url: shareUrl,
+      });
+    } else if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(shareUrl);
+      alert("Event link copied successfully!");
+    } else {
+      window.prompt("Copy this event link:", shareUrl);
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name !== "AbortError") {
+      alert("Could not share the event link.");
+    }
+  }
+};
+
 
   const [selectedEvent, setSelectedEvent] =
     useState<EventDetailsData | null>(null);
