@@ -2,7 +2,7 @@
 
 A full-stack web application that connects community organizers with volunteers to organize events, manage registrations, and coordinate volunteer participation efficiently.
 
-🔗 **Live Demo:** [Community Connect](https://project-project-comm-git-e1c837-sabbirhossen1430-6725s-projects.vercel.app/)
+🔗 **Live Demo:** [Community Connect](https://unityvol.vercel.app/)
 
 ---
 
