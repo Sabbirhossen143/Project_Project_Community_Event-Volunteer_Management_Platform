@@ -4,6 +4,8 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { QRCodeSVG } from "qrcode.react";
+import { QrCode, LoaderCircle } from "lucide-react";
 import {
   MapPin,
   Mail,
@@ -44,6 +46,9 @@ const defaultProfile: VolunteerProfile = {
 
 export default function VolunteerProfilePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrGenerating, setQrGenerating] = useState(false);
+  const [qrValue, setQrValue] = useState("");
   const [profile, setProfile] =
     useState<VolunteerProfile>(defaultProfile);
 
@@ -99,6 +104,25 @@ useEffect(() => {
       .slice(0, 2)
       .toUpperCase() || "V";
 
+const handleGenerateQr = () => {
+  setQrModalOpen(true);
+  setQrGenerating(true);
+  setQrValue("");
+
+  const qrData = [
+    "UnityVol Profile",
+    `Name: ${profile?.name || "Not provided"}`,
+    `Email: ${profile?.email || "Not provided"}`,
+    "Status: Active",
+    "Role: Volunteer",
+  ].join("\n");
+
+  setTimeout(() => {
+    setQrValue(qrData);
+    setQrGenerating(false);
+  }, 1200);
+};
+
   return (
     <div className="min-h-screen bg-[#f4f7fb] text-[#17243b]">
       <VolunteerSidebar
@@ -150,13 +174,25 @@ useEffect(() => {
               </p>
             </div>
 
-            <Link
+  <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+  <button
+    onClick={handleGenerateQr}
+    className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-blue-700 sm:px-3.5 sm:text-sm"
+  >
+    <QrCode size={16} />
+    Generate QR Code
+  </button>
+
+<Link
               href="/volunteer/profile/edit"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/10 transition hover:bg-emerald-800"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-800 sm:px-3.5 sm:text-sm"
             >
-              <Pencil size={15} />
+              <Pencil size={14} />
               Edit Profile
             </Link>
+</div>
+
+            
           </div>
 
           <div className="grid items-start gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
@@ -335,6 +371,58 @@ useEffect(() => {
 </footer>
         </div>
       </main>
+
+      {qrModalOpen && (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+    onClick={() => setQrModalOpen(false)}
+  >
+    <div
+      className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl dark:bg-gray-900"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="mb-5 flex items-center justify-between">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          Your Profile QR Code
+        </h2>
+
+        <button
+          onClick={() => setQrModalOpen(false)}
+          className="rounded-lg px-3 py-1 text-2xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+          aria-label="Close QR modal"
+        >
+          ×
+        </button>
+      </div>
+
+      {qrGenerating ? (
+        <div className="flex flex-col items-center gap-3 py-12">
+          <LoaderCircle
+            size={42}
+            className="animate-spin text-blue-600"
+          />
+          <p className="text-gray-600 dark:text-gray-300">
+            Generating your QR code...
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="mx-auto mb-5 inline-block rounded-xl border bg-white p-4">
+            <QRCodeSVG
+              value={qrValue}
+              size={220}
+              level="H"
+              includeMargin
+            />
+          </div>
+          <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+            Scan this QR code to view the profile information.
+          </p>
+        </>
+      )}
+    </div>
+  </div>
+)}
     </div>
   );
 }
@@ -363,5 +451,7 @@ function Contact({
         </p>
       </div>
     </div>
+
+    
   );
 }

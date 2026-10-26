@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import OrganizerSidebar from "@/components/OrganizerSidebar";
+import { QRCodeSVG } from "qrcode.react";
+import { QrCode, LoaderCircle } from "lucide-react";
 import {
   Menu,
   MapPin,
@@ -40,13 +42,14 @@ const initialProfile: OrganizerProfile = {
   about:
     "Passionate about bringing people together, supporting volunteers, and creating meaningful community impact.",
   joinedDate: "October 2026",
-  // Backend থেকে profile image URL এলে এখানে সেটি ব্যবহার করবে।
   profileImage: null,
 };
 
 export default function OrganizerProfilePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+const [qrGenerating, setQrGenerating] = useState(false);
+const [qrValue, setQrValue] = useState("");
   const [profile, setProfile] =
   useState<OrganizerProfile>(initialProfile);
 
@@ -76,6 +79,26 @@ useEffect(() => {
 
   loadProfile();
 }, []);
+
+const handleGenerateQr = () => {
+  setQrModalOpen(true);
+  setQrGenerating(true);
+  setQrValue("");
+
+  const qrData = [
+    "UnityVol Profile",
+    `Name: ${profile.name || "Not provided"}`,
+    `Email: ${profile.email || "Not provided"}`,
+    "Status: Active",
+    `Role: ${profile.role || "Organizer"}`,
+    `Organization: ${profile.organization || "UnityVol"}`,
+  ].join("\n");
+
+  setTimeout(() => {
+    setQrValue(qrData);
+    setQrGenerating(false);
+  }, 1200);
+};
 
 
   return (
@@ -114,7 +137,7 @@ useEffect(() => {
           display: flex;
           height: 67px;
           align-items: center;
-          justify-content: space-between;
+          justify-content: flex-start;
           padding: 0 28px;
           border-bottom: 1px solid #e7edf4;
           background: #ffffffed;
@@ -507,10 +530,6 @@ useEffect(() => {
             font-size: 24px;
           }
 
-          .profile-edit-btn {
-            width: 100%;
-          }
-
           .profile-section {
             padding: 18px;
           }
@@ -542,6 +561,124 @@ useEffect(() => {
     gap: 6px;
   }
 }
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-qr-btn {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 11px;
+  border: 1px solid #dbe5ef;
+  border-radius: 9px;
+  background: white;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.profile-qr-btn:hover {
+  background: #eff6ff;
+}
+
+@media (max-width: 560px) {
+  .profile-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    width: auto;
+    max-width: 100%;
+  }
+
+  .profile-actions .profile-qr-btn,
+  .profile-actions .profile-edit-btn {
+    display: inline-flex;
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 0;
+    min-height: 32px;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 0 8px;
+    font-size: 10px;
+    white-space: nowrap;
+    box-shadow: none;
+  }
+
+  .profile-actions .profile-qr-btn svg,
+  .profile-actions .profile-edit-btn svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+  }
+}
+
+/* QR and Edit buttons: same size */
+.profile-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.profile-actions .profile-qr-btn,
+.profile-actions .profile-edit-btn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 11px;
+  border-radius: 9px;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.profile-actions .profile-qr-btn svg,
+.profile-actions .profile-edit-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Small screen */
+@media (max-width: 560px) {
+  .profile-actions {
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .profile-actions .profile-qr-btn,
+  .profile-actions .profile-edit-btn {
+    min-height: 32px;
+    padding: 0 8px;
+    gap: 5px;
+    font-size: 10px;
+  }
+
+  .profile-actions .profile-qr-btn svg,
+  .profile-actions .profile-edit-btn svg {
+    width: 13px;
+    height: 13px;
+  }
+}
       `}</style>
 
       <OrganizerSidebar
@@ -568,38 +705,46 @@ useEffect(() => {
             <Menu size={19} />
           </button>
 
-          <div style={{ fontSize: 12, color: "#7c8ba0" }}>
-            Organizer Portal /{" "}
-            <span style={{ color: "#25364d", fontWeight: 750 }}>
-              My Profile
-            </span>
-          </div>
-
-          <div style={{ fontSize: 11, color: "#0d9669", fontWeight: 700 }}>
-            UnityVol
-          </div>
+          <div
+  style={{
+    marginLeft: 12,
+    fontSize: 12,
+    color: "#7c8ba0",
+    whiteSpace: "nowrap",
+  }}
+>
+  Organizer Portal /{" "}
+  <span style={{ color: "#25364d", fontWeight: 750 }}>
+    My Profile
+  </span>
+</div>
         </header>
 
         <div className="profile-content">
-          <div className="profile-breadcrumb">
-            <Link href="/organizer/dashboard">Dashboard</Link>
-            <span>/</span>
-            <span>My Profile</span>
-          </div>
-
           <div className="profile-heading">
             <div>
               <h1>My Profile</h1>
               <p>Manage your personal information and organizer details.</p>
             </div>
 
-            <Link
-              href="/organizer/profile/edit"
-              className="profile-edit-btn"
-            >
-              <Pencil size={15} />
-              Edit Profile
-            </Link>
+            <div className="profile-actions">
+  <button
+    type="button"
+    onClick={handleGenerateQr}
+    className="profile-qr-btn"
+  >
+    <QrCode size={15} />
+    Generate QR
+  </button>
+
+  <Link
+    href="/organizer/profile/edit"
+    className="profile-edit-btn"
+  >
+    <Pencil size={14} />
+    Edit Profile
+  </Link>
+</div>
           </div>
 
           <div className="profile-layout">
@@ -762,6 +907,61 @@ useEffect(() => {
 </footer>
         </div>
       </main>
+
+            {/* Organizer QR Popup */}
+      {qrModalOpen && (
+        <div
+          onClick={() => setQrModalOpen(false)}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl bg-white p-5 text-center shadow-2xl sm:p-6"
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-lg font-extrabold text-slate-800">
+                Your profile QR Code
+              </h2>
+
+              <button
+                type="button"
+                onClick={() => setQrModalOpen(false)}
+                aria-label="Close QR popup"
+                className="rounded-lg px-2 py-1 text-2xl text-slate-500 hover:bg-slate-100"
+              >
+                ×
+              </button>
+            </div>
+
+            {qrGenerating ? (
+              <div className="flex flex-col items-center justify-center gap-4 py-12">
+                <LoaderCircle
+                  size={42}
+                  className="animate-spin text-emerald-600"
+                />
+                <p className="text-sm text-slate-500">
+                  Generating your QR code...
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="mx-auto mb-4 inline-block rounded-xl border border-slate-200 bg-white p-3">
+                  <QRCodeSVG
+                    value={qrValue}
+                    size={210}
+                    level="H"
+                    includeMargin
+                  />
+                </div>
+                <p className="mt-4 text-xs text-slate-400">
+                  Scan the QR code to read organizer information.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

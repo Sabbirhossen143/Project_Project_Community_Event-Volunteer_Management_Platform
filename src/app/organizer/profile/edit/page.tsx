@@ -550,6 +550,27 @@ async function handleSubmit(
   }
 }
 
+.edit-profile-topbar {
+  justify-content: flex-start;
+}
+
+.edit-profile-topbar > div {
+  margin-left: 0;
+  text-align: left;
+}
+
+@media (max-width: 900px) {
+  .edit-profile-topbar {
+    justify-content: flex-start;
+    gap: 12px;
+  }
+
+  .edit-profile-topbar > div {
+    margin-left: 0;
+    text-align: left;
+  }
+}
+
       `}</style>
 
       <OrganizerSidebar
@@ -583,19 +604,9 @@ async function handleSubmit(
             </span>
           </div>
 
-          <div style={{ fontSize: 11, color: "#0d9669", fontWeight: 700 }}>
-            UnityVol
-          </div>
         </header>
 
         <div className="edit-content">
-          <div className="edit-breadcrumb">
-            <Link href="/organizer/dashboard">Dashboard</Link>
-            <span>/</span>
-            <Link href="/organizer/profile">My Profile</Link>
-            <span>/</span>
-            <span>Edit</span>
-          </div>
 
           <div className="edit-heading">
             <h1>Edit Profile</h1>
